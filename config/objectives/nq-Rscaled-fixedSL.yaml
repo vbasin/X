@@ -1,0 +1,53 @@
+# R-scaled NQ with a fixed 0.45 R stop and a market entry.
+# The fixed stop is mae_tolerance, not the adaptive stop_rule.
+
+objective_id: "nq-Rscaled-fixedSL"
+schema_version: "v2"
+
+description: >
+  Selective intraday directional trades on NQ. Entry is a market order at
+  the decision price. A decision may take any target of at least 0.25 R and
+  fails if price travels 0.45 R against the entry before that target, within
+  30 minutes, observed on the print tape. R is the median of the prior 5
+  completed sessions.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+
+directions: [long, short]
+
+economic_intent: positive_selective_net_expectancy_after_costs
+
+horizon:
+  max_trade_horizon: "30m"
+  holding_max: intraday
+
+session:
+  trading_start: "08:30"
+  trading_end: "14:45"
+  flatten: "15:00"
+  timezone: America/Chicago
+  decision_grid_seconds: 5
+
+labels:
+  scheme: first_passage_r
+  target_observation: print_tape
+  entry: market
+  unit: R
+  unit_definition:
+    source: prior_session_median
+    lookback_sessions: 5
+    excludes_current_session: true
+    per_session_metric: median_print_block_range
+    per_session_block_seconds: 300
+  move_threshold: 0.25
+  mae_tolerance: 0.45
+
+kpi:
+  primary: net_expectancy
+
+costs:
+  execution_cost_profile: MNQ_equivalent

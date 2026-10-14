@@ -1,0 +1,10 @@
+[Unit]
+Description=VTech Model Trainer Timer (weekly Sunday 08:00 ET)
+
+[Timer]
+OnCalendar=Sun *-*-* 12:00:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

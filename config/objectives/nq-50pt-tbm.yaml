@@ -1,0 +1,111 @@
+# Trade Objective — nq-50pt-tbm  (Triple Barrier Model variant of nq-50pt)
+# Same trading goal, instrument, session, horizon, and KPI as `nq-50pt`, but the
+# label-generating OBJECTIVE is a path-dependent TRIPLE BARRIER MODEL (first-touch)
+# rather than the order-agnostic Detection-2 peak-excursion + MAE-window filter.
+# The MAE (lower / stop-loss barrier) is loosened 5 -> 6 pts, so a 5 pt adverse
+# excursion no longer breaches the stop (5 < 6). Validates against
+# config/objectives/objective.schema.json. Declarative: it selects the KPI,
+# validation, and eligible model families — it never encodes a model choice.
+#
+# ACTIVATION: config/objectives/ now holds more than one objective file, so the
+# single-file auto-discovery heuristic no longer applies. The active objective is
+# pinned in config.yaml via `objective_id`. To run THIS objective, set
+# `objective_id: "nq-50pt-tbm"` in config.yaml.
+
+objective_id: "nq-50pt-tbm"
+schema_version: "v2"
+
+description: >
+  Detect intraday +/-50 point NQ futures moves within a 10-minute forward window
+  using a Triple Barrier Model: from each entry bar, a +/-50 pt profit-taking
+  barrier, a 6 pt stop-loss barrier, and a 10-minute time barrier. The label is
+  the FIRST barrier touched: profit barrier => directional signal (BIG_UP /
+  BIG_DOWN); stop or time barrier => NO_SIGNAL.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, breakout, scalping, triple_barrier]
+
+# HARD DATA-AVAILABILITY CONSTRAINT (2026-07-15). Full order-book depth (MBP-10 / L1–L10)
+# is UNAVAILABLE and will NOT be acquired — the prior scoping plan's deep-book OFI/MLOFI
+# features cannot be sourced. Scoping must research approaches that work on AVAILABLE data
+# only; the critic must reject any proposal that depends on unavailable data and force an
+# alternate-idea research round.
+data_availability:
+  note: >
+    Full order-book depth (MBP-10, multi-level L1–L10 depth, deep-book OFI/MLOFI) is
+    UNAVAILABLE and will not be acquired — do not propose anything that requires it. The
+    entries below describe the RAW DATA that exists, NOT a feature menu: deciding which
+    signals, features, and edges to derive from this raw data is your research job, and the
+    critic will reject a plan that merely restates these feeds or recycles obvious/textbook
+    ideas without surfacing non-obvious alternatives you had to work to find.
+  available:
+    - "databento.tbbo (tick-level, NQ lead-month, ~2025-04..2026-06): top-of-book (L1) message data — best bid/ask price, size, order-count — plus trades (price, size, aggressor side, sequence, timestamps). L1 only; nothing below the best bid/offer."
+    - "databento GLBX options on NQ underlyings (~208k strikes across expiries): option quotes and trades."
+    - "An aggregated 5s bar feature set already exists (program=nq-50pt-08-15-cst); finer bars (e.g. 1s) are rebuildable from the TBBO ticks if a candidate justifies the cost."
+  unavailable:
+    - "MBP-10 / full order-book depth (L1–L10) — not sourced, not acquirable."
+
+horizon:
+  max_trade_horizon: "10m"          # vertical (time) barrier: the qualifying first-touch must occur within this window
+  holding_max: intraday
+
+session:
+  training_start: "08:00"
+  training_end: "14:45"
+  trading_start: "08:30"
+  trading_end: "14:45"
+  timezone: America/Chicago
+
+labels:
+  # Triple Barrier Model (path-dependent, first-touch). Two mirror hypotheses share
+  # one vertical (time) barrier = max_trade_horizon (10m):
+  #   LONG  hypothesis: profit barrier +move_threshold (+50), stop barrier -mae_tolerance (-6)
+  #   SHORT hypothesis: profit barrier -move_threshold (-50), stop barrier +mae_tolerance (+6)
+  # Label = BIG_UP   if +50 is touched before -6 and before the time barrier;
+  #         BIG_DOWN if -50 is touched before +6 and before the time barrier;
+  #         NO_SIGNAL otherwise (time barrier reached, or stopped out first).
+  # The two hypotheses are mutually exclusive, preserving the existing
+  # {BIG_DOWN, NO_SIGNAL, BIG_UP} class scheme.
+  scheme: triple_barrier        # first-touch semantics (src/training/labels.py generate_labels_tbm)
+  move_threshold: 50            # profit-taking barrier distance (upper for longs, lower for shorts)
+  mae_tolerance: 6              # stop-loss barrier distance; a 5 pt adverse excursion stays inside it (5 < 6)
+  unit: points
+
+kpi:
+  primary: precision_at_tau
+  champion_gate: true
+
+  # ── requirement: the bar a model/ensemble must clear to be CONSIDERED by the
+  #    champion gate. Passes if ANY of these per-direction precision conditions hold.
+  requirement:
+    any:
+      - {metric: precision_at_tau, direction: up,   tau: 0.8, min: 0.85}
+      - {metric: precision_at_tau, direction: down, tau: 0.8, min: 0.85}
+      - {metric: precision_at_tau, direction: up,   tau: 0.9, min: 0.90}
+      - {metric: precision_at_tau, direction: down, tau: 0.9, min: 0.90}
+
+  # ── target: the goal for the overall model to reach through iterative
+  #    experimentation. Achieved only when ALL hold (both sides precise AND recalled).
+  target:
+    all:
+      - {metric: precision_at_tau, direction: up,   tau: 0.9, min: 0.95}
+      - {metric: precision_at_tau, direction: down, tau: 0.9, min: 0.95}
+      - {metric: recall,           direction: up,   min: 0.5, op: gt}
+      - {metric: recall,           direction: down, min: 0.5, op: gt}
+
+# risk_return + costs: optional. Fill when known:
+#   risk_return: {max_drawdown, min_hit_rate, min_payoff_ratio}
+#   costs: {cost_per_trade, slippage_model}
+# Without them the champion gate selects on KPI (precision_at_tau / dir_f1) only.
+
+eligible_model_families: []      # empty = all catalogued families eligible
+
+eval:
+  hold_out: "e68510982d9f"       # contract v1 (data/evaluation/nq-50pt-tbm/contract_v1.json): features_2026-02-17..2026-06-02
+  walk_forward_folds: 3

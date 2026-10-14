@@ -1,0 +1,47 @@
+# Reconciled from scoping run 20260715T080602Z (data/scoping/nq-50pt-tbm/…).
+# The scoping plan's committed families + HPO starting points, with feature views
+# mapped to what EXISTS in the current 5s snapshot (program=nq-50pt-08-15-cst):
+#   - MBP-10 is UNAVAILABLE, so the plan's OFI/microstructure views
+#     (engineered_microstructure + ofi_/mlofi_/depth_/microprice_ prefixes) and the
+#     1s timeframe cannot be built. Mapped to the nearest registered view:
+#       engineered_microstructure -> microstructure ;  regime_features -> regime_core
+#   - tcn (exploratory) is DEFERRED: its microstructure_sequence view is also MBP-10-derived
+#     (unbuildable) and tcn is GPU-bound (OCI runner), so it cannot run in this pass.
+#   - params are the plan's concrete {start} values; prose hints (task/imbalance/calibration)
+#     are not trainer params and are dropped. Labels/KPI/folds still come from the objective.
+schema_version: v1
+objective_id: nq-50pt-tbm
+ensembles: true
+candidates:
+  - family: lightgbm
+    id: lgbm_micro_primary
+    params:
+      num_leaves: 31
+      max_depth: 6
+      learning_rate: 0.03
+      n_estimators: 2000
+      min_child_samples: 100
+      subsample: 0.8
+      colsample_bytree: 0.8
+      reg_lambda: 5.0
+    features: {view: microstructure}
+  - family: xgboost
+    id: xgb_micro_primary
+    params:
+      max_depth: 6
+      eta: 0.03
+      n_estimators: 2000
+      min_child_weight: 5
+      subsample: 0.8
+      colsample_bytree: 0.8
+    features: {view: microstructure}
+  - family: logistic_regression
+    id: logit_micro_baseline
+    params:
+      penalty: l2
+      C: 0.2
+      max_iter: 2000
+    features: {view: microstructure}
+  - family: hmm
+    id: hmm_regime_gate
+    features: {view: regime_core}

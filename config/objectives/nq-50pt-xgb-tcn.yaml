@@ -1,0 +1,118 @@
+# Trade Objective — nq-50pt-xgb-tcn
+# Same TBM +50 / −6 / 10m economics contract as nq-50pt-econ. Decision surface:
+#   N walk-forward models in parallel (first instance: xgboost + tcn) on the
+#   same assigned feature view, then an output_meta binary gate on their
+#   prediction vectors (logistic_regression). Optional context_view omitted.
+# ACTIVATION:
+#   python -m src.search.controller --objective nq-50pt-xgb-tcn
+#   python -m src.search.finalize --objective nq-50pt-xgb-tcn
+
+objective_id: "nq-50pt-xgb-tcn"
+schema_version: "v2"
+
+description: >
+  Capture asymmetric TBM economics on NQ: +50 pt first-touch profit barrier vs
+  -6 pt stop within 10 minutes. Parallel models (XGBoost + TCN) share the
+  momentum_edge feature view and the same 5s TBM labels; a logistic meta gate
+  approves or rejects the side resolved from those upstream prediction vectors.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, triple_barrier, meta_label, economics, tcn, stack]
+
+data_availability:
+  note: >
+    Full order-book depth (MBP-10 / L1–L10) is UNAVAILABLE and will not be acquired.
+    Work only from available L1 TBBO + engineered feature groups; prefer sparse
+    momentum_edge over inventing deep-book features.
+  available:
+    - "databento.tbbo (L1 NQ lead-month) + engineered 5s feature parquet program=nq-50pt-08-15-cst"
+    - "Options-derived IV/GEX columns when present in the feature parquet (not required)"
+  unavailable:
+    - "MBP-10 / full order-book depth (L1–L10) — not sourced, not acquirable."
+
+horizon:
+  max_trade_horizon: "10m"
+  holding_max: intraday
+
+session:
+  training_start: "08:02"
+  training_end: "14:45"
+  trading_start: "08:30"
+  trading_end: "14:45"
+  timezone: America/Chicago
+
+labels:
+  scheme: triple_barrier
+  move_threshold: 50
+  mae_tolerance: 6
+  unit: points
+
+costs:
+  cost_per_trade: 0
+  slippage_model: fixed_1pt
+
+
+kpi:
+  primary: net_expectancy
+  champion_gate: true
+  requirement:
+    all:
+      - {metric: net_expectancy, min: 20.0}
+      - {metric: n_signals, min: 30}
+      - {metric: hit_rate, min: 0.55}
+      - {metric: max_drawdown, min: -400, op: gte}
+  target:
+    all:
+      - {metric: net_expectancy, min: 30.0}
+      - {metric: hit_rate, min: 0.65}
+      - {metric: precision_at_tau, direction: up,   tau: 0.9, min: 0.85, min_signals: 15}
+      - {metric: precision_at_tau, direction: down, tau: 0.9, min: 0.85, min_signals: 15}
+
+eligible_model_families:
+  - xgboost
+  - tcn
+
+eval:
+  walk_forward_folds: 3
+  # Clip the training + OOF universe to a fixed calendar window so the base OOFs
+  # (and the output_meta cross-fit that consumes them) stay reproducible across
+  # parquet accretion. Intersected with the parquet dir's natural extent inside
+  # src/search/fold_cache.py; cache key includes the range for clean invalidation.
+  date_range:
+    start: "2025-07-01"
+    end:   "2026-07-01"
+
+search:
+  tune_trials: 0
+  # Per-family sparse views (W4 / ADR-027). No default_feature_view: every
+  # eligible family has an explicit override, so the fallback would be dead.
+  feature_views:
+    xgboost: regime_core
+    # TCN needs sequence-rich features across its 128-bar receptive field.
+    # regime_core columns barely move over that window → TCN degenerated to noise
+    # (p@τ=0.27 in run 20260815T122644Z). sequence_baseline gives it the
+    # standard trader set: VWAP relation, HTF trend/levels, candle structure,
+    # realized vol, time-of-day.
+    tcn: sequence_baseline
+  topology:
+    mode: meta_stack
+    bases: [xgboost, tcn]
+    meta:
+      family: logistic_regression
+      # scheme:  walk_forward_OOF  — meta trains on all prior time blocks and
+      #                              predicts each next block. Block 0 is warmup
+      #                              (no fires) so effective KPI coverage is 4/5.
+      # feature: linear_weights    — per-base signed evidence s = p_up - p_down.
+      #                              Try 'log_weights' for Bayesian log-linear
+      #                              pooling in a follow-up wave.
+      scheme: walk_forward_OOF
+      feature: linear_weights
+      approve_threshold: 0.55       # symmetric: up if p_up>=0.55, down if <=0.45
+      n_folds: 5
+      embargo_bars: 120

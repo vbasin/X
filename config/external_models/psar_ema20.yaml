@@ -1,0 +1,29 @@
+# Legacy combined card (ADR-058). Not listed in the External Models
+# dropdown after ADR-062: the SAR trail and the 20 EMA slope are
+# separate engines. ``external:psar_ema20`` still expands to a stack of
+# ``psar`` + ``ema20``. Do not treat this YAML as a third signal model.
+id: psar_ema20
+title: Parabolic SAR & 20EMA (legacy stack)
+kind: pine_replica
+engine: stack
+listed: false
+compat_stack:
+  - psar
+  - ema20
+stage: 0
+timeframe: 1min
+candle_table: databento.tbbo_1min
+symbol_root: NQ
+pine_version: 6
+description: >
+  Compatibility alias for the pre-ADR-062 combined Pine card. Stacks
+  Parabolic SAR and 20 EMA; matching signals enter, opposing signals
+  stand down or exit. Prefer the psar and ema20 cards.
+params:
+  start: 0.02
+  increment: 0.02
+  maximum: 0.2
+  exit_at_sar: false
+  ema_length: 20
+  ema20_l_bars: 8
+  ema20_s_bars: 2

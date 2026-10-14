@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CustomTestBoard",
+  "description": "WebUI Custom Test board. Compiles to a manual-candidates spec (ADR-019) plus ephemeral search.topology and eval walk-forward overlays. Does not mutate the Trade Objective YAML. Last-fold serving folders land at research/custom_test/<objective>/<run_ts>/models/<candidate_id>/ (ADR-036). Per-slot params override catalog defaults; opt-in HPO (ADR-040) subsets CatalogEntry.search_space and passes --tune-trials. Expanding calendar walk-forward (ADR-042) is configured on the board.",
+  "type": "object",
+  "required": ["objective_id", "models"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"type": "string"},
+    "objective_id": {"type": "string", "minLength": 1},
+    "feature_store": {
+      "type": "string",
+      "enum": ["5s", "15s", "1m", "5m", "1h", "1d"],
+      "description": "Feature store / timeframe for the bank and loader (ADR-076)."
+    },
+    "head": {
+      "type": "string",
+      "enum": ["multiclass", "ovr", "dual_binary"],
+      "description": "Default head for slots that omit head (ADR-076)."
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/model_slot"}
+    },
+    "meta": {"$ref": "#/$defs/meta"},
+    "walk_forward": {"$ref": "#/$defs/walk_forward"},
+    "dry_run": {"type": "boolean", "default": false},
+    "tune_trials": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 200,
+      "default": 0,
+      "description": "Optuna trials per HPO-enabled candidate. 0 = use 20 when any slot has hpo, else off."
+    }
+  },
+  "$defs": {
+    "model_slot": {
+      "type": "object",
+      "required": ["family"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique slot id (defaults to family). Distinct when the same family is added twice."
+        },
+        "family": {"type": "string", "minLength": 1},
+        "head": {
+            "type": "string",
+            "enum": ["multiclass", "ovr", "dual_binary"],
+            "description": "Output head. dual_binary = independent P_long/P_short (ADR-076)."
+        },
+        "feature_store": {
+            "type": "string",
+            "enum": ["5s", "15s", "1m", "5m", "1h", "1d"],
+            "description": "Optional per-slot store (v1 uses board-level feature_store)."
+        },
+        "items": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/feature_item"}
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Hyperparameter overrides merged over the family's catalog params_default for this run."
+        },
+        "hpo": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, Optuna varies hpo_params (or the full catalog search_space) over catalog ranges. Fixed params stay at params / defaults."
+        },
+        "hpo_params": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+          },
+          "description": "Catalog search_space keys to include when hpo is true. Empty / omitted = all catalog knobs for this family."
+        },
+        "max_rows": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "Train-fold row cap. Omitted or null = full train window (Custom Test default). Integer = last-N consecutive train bars per fold; OOF is never capped."
+        }
+      }
+    },
+    "feature_item": {
+      "type": "object",
+      "required": ["kind", "key"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"type": "string", "enum": ["view", "group", "feature"]},
+        "key": {"type": "string", "minLength": 1},
+        "label": {"type": "string"},
+        "ablation": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, this item is included and excluded (2^k across all flagged items on the slot)."
+        }
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {"type": "boolean", "default": false},
+        "mode": {
+          "type": "string",
+          "enum": ["none", "meta_stack", "output_meta", "primary_meta", "tf_oof_meta"]
+        },
+        "family": {"type": "string"},
+        "scheme": {"type": "string", "enum": ["walk_forward_OOF", "cross_fit"]},
+        "feature": {"type": "string", "enum": ["linear_weights", "log_weights"]},
+        "approve_threshold": {"type": "number", "minimum": 0.5, "maximum": 1},
+        "n_folds": {"type": "integer", "minimum": 2, "maximum": 20},
+        "embargo_bars": {"type": "integer", "minimum": 0, "maximum": 10000},
+        "context_view": {"type": ["string", "null"]}
+      }
+    },
+    "period_unit": {
+      "type": "string",
+      "enum": ["days", "weeks", "months"]
+    },
+    "walk_forward": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Expanding calendar walk-forward overlay (ADR-042). Disabled = objective YAML equal-count folds. Train1+test1 become train2 until stop.",
+      "properties": {
+        "enabled": {"type": "boolean", "default": true},
+        "start": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+        "stop": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+        "train_n": {"type": "integer", "minimum": 1, "maximum": 365},
+        "train_unit": {"$ref": "#/$defs/period_unit"},
+        "test_n": {"type": "integer", "minimum": 1, "maximum": 365},
+        "test_unit": {"$ref": "#/$defs/period_unit"},
+        "val": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {"type": "boolean", "default": false},
+            "n": {"type": "integer", "minimum": 1, "maximum": 365},
+            "unit": {"$ref": "#/$defs/period_unit"},
+            "cut_from": {"type": "string", "enum": ["train", "test"]}
+          }
+        }
+      }
+    }
+  }
+}

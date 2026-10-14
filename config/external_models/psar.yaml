@@ -1,0 +1,25 @@
+# Factory card: Parabolic SAR (ADR-058 / ADR-062).
+# Operator-saved defaults live under $VTECH_DATA_DIR/ops/webui/external_models/
+# and overlay these values. This file is the factory reset target.
+id: psar
+title: Parabolic SAR
+kind: pine_replica
+engine: psar
+stage: 0
+timeframe: 1min
+candle_table: databento.tbbo_1min
+symbol_root: NQ
+pine_version: 6
+description: >
+  Wilder Parabolic SAR trail (start / increment / maximum) on closed
+  candles from databento.tbbo_1min (lead-month NQ). Long while the
+  closed-bar SAR trend is up, short while it is down. Optional
+  exit_at_sar fills a tagged trail at the SAR value instead of that
+  bar's close (factory off). Session, ATR gate, profit target / stop
+  loss, sides, and costs are Backtest Parameters on the Backtest tab
+  (EXT Model) and apply when this model is backtested or stacked.
+params:
+  start: 0.02
+  increment: 0.02
+  maximum: 0.2
+  exit_at_sar: false

@@ -1,0 +1,130 @@
+# Combined run spec: XGBoost (45 features, CPU) + Attention-LSTM (7 features, GPU)
+#
+# GPU note: GPU_INSTANCE_OCID is set in .env so a real run dispatches BOTH
+# candidates to the A10 (CPU families run on the GPU VM's CPUs).
+#
+#   Dry-run (no training, no GPU start):
+#     python -m src.search.controller --objective nq-50pt \
+#         --manual-spec config/my_models_run.yaml --dry-run --no-ensemble
+#
+#   Real run (starts the billable A10):
+#     python -m src.search.controller --objective nq-50pt \
+#         --manual-spec config/my_models_run.yaml --no-ensemble
+#
+#   XGBoost only (local CPU, no GPU VM cost):
+#     env -u GPU_INSTANCE_OCID python -m src.search.controller --objective nq-50pt \
+#         --manual-spec config/my_models_run.yaml --no-ensemble --families xgboost
+#
+# NOTE: iv_vix_close does not exist in any feature module and is excluded.
+#       All other iv_ and gx_ columns are present in parquets from 2025-04-25 onward
+#       (14 early-April dates will have 0.0 for those 8 columns — NaN-filled).
+#
+# Validates against config/manual_candidates.schema.json.
+
+schema_version: v1
+objective_id: nq-50pt
+ensembles: false
+
+candidates:
+
+  # ── 1. XGBoost — full microstructure + IV/GEX feature set ─────────────────
+  - id: xgb_custom
+    family: xgboost
+    params:
+      n_estimators: 600
+      max_depth: 12
+      learning_rate: 0.03
+      subsample: 0.8
+      colsample_bytree: 0.8
+      class_balance: balanced
+      dir_threshold: 0.50
+    features:
+      columns:
+        # ── Order flow / cumulative volume delta
+        - lt_cvd
+        - lt_cvd_chg_120
+        - lt_cvd_divergence
+        # ── VWAP
+        - vw_vwap_dist
+        # ── Order flow (short-horizon)
+        - of_cvd_price_divergence
+        - of_delta                  # per-bar net buy-sell volume
+        - of_volume_ma_60           # 5-minute volume moving average
+        - of_volume_ratio
+        # ── Trade location
+        - tl_trade_location
+        # ── Arrival rate / trade intensity
+        - ta_arrival_rate
+        - ta_arrival_accel
+        # ── Market microstructure
+        - ms_vpin
+        - ms_vpin_zscore_60
+        # ── Realized volatility
+        - rv_realized_vol_60
+        - rv_vol_of_vol_120
+        - rv_vol_ratio
+        # ── Supply/demand flow
+        - sd_imbalance_trajectory
+        - sd_bid_sz_delta
+        - sd_ask_sz_delta
+        - sd_tick_count
+        # ── Volume profile
+        - vp_poc_dist
+        - vp_va_high_dist
+        - vp_va_low_dist
+        - vp_in_value_area
+        - vp_poc_slope
+        # ── Candle structure / range
+        - cs_range_ma_12
+        - cs_range_ma_60
+        - cs_range_ma_120
+        # ── Implied volatility surface (missing on 14 early-April dates → 0.0)
+        - iv_0dte_atm
+        - iv_1dte_atm
+        - iv_term_slope
+        - iv_atm_chg_6
+        - iv_atm_mean
+        - iv_skew
+        # ── Dealer GEX (same 14-date caveat)
+        - gx_dealer_gex
+        - gx_gex_flip_dist
+        # ── Time-of-day / intraday blocks
+        - tc_block_premkt_30m
+        - tc_block_open_5m
+        - tc_block_open_30m
+        - tc_block_9am_60m
+        - tc_block_10am_60m
+        - tc_block_11am_60m
+        - tc_block_12pm_60m
+        - tc_block_1pm_60m
+        - tc_block_2pm_60m
+
+  # ── 2. Attention-LSTM — IV surface + realized volatility regime ────────────
+  #
+  # The search controller folds produce 2-D arrays; the plugin auto-windows them
+  # into (N-seq_len+1, seq_len, 7) sliding sequences. If actual feature count
+  # differs from n_features, the model is rebuilt with the correct shape.
+  #
+  # iv_vix_close: excluded — not produced by any feature module.
+  - id: lstm_iv_rv
+    family: attention_lstm
+    params:
+      seq_len: 48               # 48 bars × 5 s = 4-minute look-back window
+      n_features: 7             # hint only; auto-corrected in fit() from actual data
+      epochs: 12
+      lstm_units: [64, 32]
+      attention_heads: 4
+      dense_units: [64, 32]
+      dropout: 0.2
+    max_rows: 120000            # cap per fold — full 1.4M-row windowing OOMs the runner
+                                # (sequence models are capped like this in the catalog)
+    features:
+      columns:
+        - iv_0dte_atm
+        - iv_1dte_atm
+        - iv_term_slope
+        - iv_atm_chg_6
+        # iv_vix_close → does not exist in any feature module; excluded
+        - rv_realized_vol_60
+        - rv_vol_of_vol_120
+        - rv_vol_ratio

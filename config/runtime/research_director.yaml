@@ -1,0 +1,96 @@
+# Research Director — agent-layer configuration (Phase 19).
+#
+# Non-secret knobs for the cognitive layer (expert panel + Director synthesis).
+# Secrets live in .env: RD_LLM_BASE_URL, RD_LLM_API_KEY, RD_LLM_MODEL, RD_EMBED_MODEL.
+# Loaded by src.research_director.config (RDConfig.load()); env vars override.
+
+llm:
+  # Provider-agnostic, OpenAI-compatible endpoint (OpenAI / OCI GenAI / local vLLM).
+  base_url_env: RD_LLM_BASE_URL          # e.g. https://api.openai.com/v1
+  api_key_env:  RD_LLM_API_KEY
+  # Per-role model + sampling. Reasoning-grade model for experts + director.
+  default_model_env: RD_LLM_MODEL
+  embed_model_env:   RD_EMBED_MODEL       # e.g. text-embedding-3-large
+  embed_dim: 3072                          # must match the embedding model output dim
+  request_timeout_s: 120
+  max_json_repair_retries: 1               # one repair pass on malformed JSON, then fail
+  roles:
+    director:           { temperature: 0.2, max_tokens: 4096 }
+    quant_trading:      { temperature: 0.3, max_tokens: 3072 }
+    ml_data_scientist:  { temperature: 0.3, max_tokens: 3072 }
+    # systems_architect + data_engineer retired (ADR-013); personas archived under
+    # archive/deprecated_personas/.
+
+# ── RD model-improvement loop (mirrors config/scoping.yaml) ───────────────────
+# The cognitive loop: two field experts DIAGNOSE the existing model + the patterns in its results
+# and PRESCRIBE the single highest-leverage change; a cross-model CRITIC forces deeper thinking; a
+# judge SYNTHESIZES one ranked ModelImprovementPlan; the top pick is AUTO-VALIDATED (trained+scored
+# vs the baseline over the objective's walk-forward folds, GPU→CPU fallback). Loaded by
+# research_director.orchestrator.load_rd_cfg(). Personas: config/agents/{quant_trading,
+# ml_data_scientist}.md (identity/lenses); duties + red-flags: config/agents/rd_duties.yaml.
+rd_loop:
+  fields:
+    - quant_trading
+    - ml_data_scientist
+  caps:
+    self_critique: 3                 # author self-critique pre-pass rounds
+    critic_rounds: 4                 # cross-model critic → re-analyze rounds (converges earlier)
+    synthesis_replications: 1        # independent replication + reconciliation of the plan
+    max_tool_iters: 10               # bounded per-round research tool loop
+  providers:
+    author: auto                     # VTECH_LLM_PROVIDER / auto (anthropic if key, else openai)
+    critic: other                    # 'other' = the family the author did NOT use (decorrelation)
+    critic_model: gpt-5.6-terra      # explicit cross-lab critic model (optional)
+    critic_api_key_env: OPENAI_API_KEY
+    critic_base_url_env: OPENAI_BASE_URL
+    critic_reasoning_effort: medium
+    critic_web: true                 # hosted web_search for adversarial counter-evidence
+  memory:                            # pgvector per-agent memory (research_director.agent_memory)
+    recall_top_k: 6
+    recall_min_similarity: 0.7       # openai L2-normalized cosine — retune if recall is too sparse
+  cost:
+    usd_cap_session: 20.00           # hard stop for one cycle's cognitive spend
+    per_agent_usd_cap: 8.00          # author diagnose+tools often exceeds $5 at Opus list rates
+    # Rates are USD per 1k tokens (CostMeter.cost_of). Sources (2026-08):
+    #   Anthropic Opus 4.8 list: $5 / $25 per 1M in/out → $0.005 / $0.025 per 1k
+    #     https://platform.claude.com/docs/en/about-claude/pricing
+    #   OpenAI GPT-5.6 Terra list (post-2026-07-30): $2 / $12 per 1M in/out → $0.002 / $0.012 per 1k
+    #     https://developers.openai.com/api/docs/pricing
+    # Keys must match the exact model_version strings written to research_director.llm_call.
+    model_rates:
+      claude-opus-4-8: { in_per_1k: 0.005, out_per_1k: 0.025 }
+      gpt-5.6-terra:   { in_per_1k: 0.002, out_per_1k: 0.012 }
+  # Auto-validation execution (search controller over the objective's walk-forward folds):
+  parquet_dir: data/sources/features/timeframe=5s/symbol=NQ
+  tune_trials: 0                     # >0 enables per-candidate HPO during validation
+  delta_min: 0.0                     # Evaluator improvement threshold vs baseline
+  class_prior: 0.09                  # cold-start absolute floor (~9% directional class rate)
+  # The GPU VM OCID comes from GPU_INSTANCE_OCID in .env; GPU_BOOT_TIMEOUT_S (default 300) is how
+  # long the controller waits for the VM to reach RUNNING after START before routing to CPU.
+
+# Bounded research tool budget (literature / web search).
+research:
+  prefer_internal_corpus: true        # research_cases/papers/ + docs/ before external
+  external_search_enabled: true       # Anthropic web_search/web_fetch server tools handle
+                                      # external reads when VTECH_LLM_PROVIDER=anthropic
+
+# Governor pre-cycle AND-gate (W5). Suppression windows are coded (oci-sync 02:00 / pg-backup 03:00 UTC).
+governor:
+  min_gap_s: 300                    # >= 5 min between cycles
+  act_cap_24h_s: 57600               # <= 16 GPU-hours per rolling 24 h
+  usd_cap_day: 20.00
+  usd_cap_week: 80.00
+
+# External-data guardrail (Policy Engine Gate 6). Agents never download data — they journal
+# the data_requirement (EXTERNAL_DATA_REQUIRED) for operator review and move on.
+external_data:
+  enabled_gate: true
+
+# ── Scoping v2 (ADR-025) — MOVED to config/scoping.yaml (2026-07-14) ──
+# The scoping orchestrator (src/scoping/) is a separate engine from the Research Director
+# panel; its config now lives in its own file. load_scoping_cfg() reads config/scoping.yaml
+# first and falls back to a `scoping:` block here only if that file is absent.
+
+# MLflow loop lineage (W7). iteration = parent run; each agent's experiment = nested run.
+mlflow:
+  log_iterations: true

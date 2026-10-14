@@ -1,0 +1,569 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TradeObjective",
+  "description": "Phase 23 entry point. A declarative, versioned trade objective. It selects the KPI, the validation style, and which model families are eligible; it NEVER encodes a model choice. Generalizes the legacy config.yaml `program objectives` / `success thresholds` / `labels` block. Every experiment bundle and Stage-0 artifact references this objective_id (top of the provenance chain).",
+  "type": "object",
+  "required": ["objective_id", "description", "traded products", "labels", "kpi"],
+  "properties": {
+    "objective_id": {
+      "x-objective-role": "identity",
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable ID encoding instrument and threshold, e.g. 'nq-50pt'. Changes only on ADR-level decisions."
+    },
+    "schema_version": {
+      "x-objective-role": "meta",
+      "type": "string",
+      "description": "Objective-spec schema generation, e.g. 'v1'."
+    },
+    "description": {
+      "x-objective-role": "meta",
+      "type": "string",
+      "minLength": 10,
+      "description": "Plain-English statement of the trading goal."
+    },
+    "traded products": {
+      "x-objective-role": "identity",
+      "type": "array",
+      "minItems": 1,
+      "description": "Instruments the objective concerns. Exactly one should have role 'primary'. Warm-start traits (asset_class / strategy / horizon) for Stage-0 artifacts are DERIVED from the primary product + strategy_keywords + horizon.",
+      "items": {
+        "type": "object",
+        "required": ["symbol", "role"],
+        "properties": {
+          "symbol": {"type": "string", "description": "e.g. 'NQ', 'ES'."},
+          "security_type": {"type": "string", "description": "e.g. futures, equity, option, etf, index."},
+          "asset_class": {"type": "string", "description": "e.g. equity_futures, equities, fx, crypto, rates."},
+          "role": {"type": "string", "enum": ["primary", "related"], "description": "primary = the traded instrument; related = context/cross-asset."},
+          "note": {"x-objective-role": "meta", "type": "string", "description": "Free-text documentation only -- must never affect objective identity."}
+        },
+        "additionalProperties": false
+      }
+    },
+    "directions": {
+      "x-objective-role": "identity",
+      "type": "array",
+      "items": {"type": "string", "enum": ["long", "short"]},
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Trade directions the objective covers."
+    },
+    "economic_intent": {
+      "x-objective-role": "identity",
+      "type": "string",
+      "enum": ["positive_selective_net_expectancy_after_costs"],
+      "description": "Topology-neutral statement of the durable economic goal, independent of which metric ranks candidates during search (kpi.primary is a ranking-metric DEFAULT, not this). Optional: existing objectives predate this field and are not required to state it. Extend the enum -- do not invent free text -- when a second intent is genuinely needed."
+    },
+    "strategy_keywords": {
+      "x-objective-role": "meta",
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Free-form tags, e.g. ['momentum', 'intraday', 'breakout']."
+    },
+    "data_availability": {
+      "x-objective-role": "default",
+      "type": "object",
+      "description": "Optional HARD scoping constraint on what data can be sourced. Surfaced verbatim to the scoping agents + critic. When present, agents must NOT propose features/models that depend on anything listed as unavailable, and the critic must force a redesign onto available data.",
+      "properties": {
+        "note": {"type": "string"},
+        "available": {"type": "array", "items": {"type": "string"}},
+        "unavailable": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "horizon": {
+      "x-objective-role": "identity",
+      "type": "object",
+      "description": "Trade horizon. Only the OUTER bound is an objective constraint; the exact label windows/timestep the model uses are a modeling choice left to the search.",
+      "properties": {
+        "max_trade_horizon": {"type": "string", "description": "Maximum forward window in which the qualifying move must occur, e.g. '10m'."},
+        "holding_max": {"type": "string", "description": "Maximum holding time, e.g. 'intraday'."}
+      },
+      "additionalProperties": false
+    },
+    "session": {
+      "x-objective-role": "mixed",
+      "type": "object",
+      "description": "Two distinct session windows: (a) training_start/training_end bound the data range used by the feature engine + labels + training. (b) trading_start/trading_end bound the actual trade-execution window used by the live paper engine, the backtest engine and the webui blotter. The feature timestep is a modeling choice left to the search, not an objective constraint.",
+      "properties": {
+        "training_start": {"x-objective-role": "default", "type": "string", "description": "Data/training window start (local time), e.g. '08:00'."},
+        "training_end": {"x-objective-role": "default", "type": "string", "description": "Data/training window end (local time), e.g. '14:45'."},
+        "trading_start": {"x-objective-role": "identity", "type": "string", "description": "Trade-execution window start (local time), e.g. '08:30'. Live + backtest ignore signals before this."},
+        "trading_end": {"x-objective-role": "identity", "type": "string", "description": "Trade-execution window end (local time), e.g. '14:45'. Live + backtest flatten / block new entries at this time."},
+        "timezone": {"x-objective-role": "identity", "type": "string", "description": "e.g. 'America/Chicago'."},
+        "flatten": {"x-objective-role": "identity", "type": "string", "description": "Local time all positions are closed; truncates every outcome path."},
+        "decision_grid_seconds": {"x-objective-role": "default", "type": "integer", "minimum": 1, "description": "Decision cadence. Sampling/attempt frequency, not the underlying trading problem -- a 5s vs 15s cadence does not by itself require a new objective_id."}
+      },
+      "additionalProperties": false
+    },
+    "labels": {
+      "x-objective-role": "mixed",
+      "type": "object",
+      "description": "Ground-truth definition of a qualifying move (WHAT counts as a signal). Immutable for a given objective_id. The label ENCODING (class scheme, forward windows, timestep) is a modeling choice left to the search — deliberately not fixed here. scheme candidate_exit_surface is the historical candidate-grid objective: it has no single move_threshold or stop_rule.",
+      "allOf": [
+        {
+          "if": {
+            "properties": {"scheme": {"const": "candidate_exit_surface"}},
+            "required": ["scheme"]
+          },
+          "then": {
+            "required": ["outcome", "candidates", "entry_rule", "selection"]
+          },
+          "else": {
+            "required": ["move_threshold"],
+            "anyOf": [{"required": ["mae_tolerance"]}, {"required": ["stop_rule"]}]
+          }
+        }
+      ],
+      "properties": {
+        "entry": {"x-objective-role": "identity", "type": "string", "enum": ["market", "limit"], "description": "How a decision becomes a position. market: fill at the decision price. limit: rest at the far edge of the containing bound; an unfilled order emits no row."},
+        "move_threshold": {"x-objective-role": "identity", "type": "number", "description": "Minimum absolute move size, in `unit`."},
+        "mae_tolerance": {"x-objective-role": "identity", "type": "number", "description": "Maximum adverse excursion against entry, in `unit`."},
+        "stop_rule": {"x-objective-role": "identity", "type": "object", "description": "Target-adaptive stop: stop = min(ratio_to_target * target, max). Use INSTEAD of mae_tolerance when no single adverse bound is true for every target.", "required": ["ratio_to_target"], "properties": {"ratio_to_target": {"type": "number", "exclusiveMinimum": 0}, "max": {"type": "number", "exclusiveMinimum": 0}}, "additionalProperties": false},
+        "unit_definition": {
+          "x-objective-role": "identity",
+          "description": "What one `unit` IS when it is not a plain price unit (e.g. how R is measured). Free text, OR -- when the definition is genuinely a prior-session lookback-median, as Track C's R is -- the structured, machine-checkable form below (added for Track C; no existing objective used this key before).",
+          "oneOf": [
+            {"type": "string"},
+            {
+              "type": "object",
+              "required": ["source", "lookback_sessions", "excludes_current_session", "per_session_metric", "per_session_block_seconds"],
+              "properties": {
+                "source": {"type": "string", "enum": ["prior_session_median"], "description": "The lookback rule. One form defined so far: the median of a per-session statistic over the N most recently COMPLETED sessions before the current one."},
+                "lookback_sessions": {"type": "integer", "exclusiveMinimum": 0, "description": "N in the median above."},
+                "excludes_current_session": {"const": true, "description": "Must be true for this form: the current (in-progress) session contributes NOTHING to the yardstick, so it needs no future data and is trivially causal."},
+                "per_session_metric": {"type": "string", "enum": ["median_print_block_range", "median_1s_block_range"], "description": "How ONE completed session's own contribution to the yardstick is computed. median_print_block_range is session_r_from_tape (print tape). median_1s_block_range is path_labels.session_r on the 1s high/low grid."},
+                "per_session_block_seconds": {"type": "integer", "exclusiveMinimum": 0, "description": "Non-overlapping block width, in seconds, underlying per_session_metric."},
+                "window_end": {"type": "string", "description": "Local time the per-session range window ends. Omit when the window ends at trading_end. The first-passage builder sets PathLabelConfig.entry_end to the flatten, so its window runs until flatten."}
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "unit": {"x-objective-role": "identity", "type": "string", "description": "Unit of move_threshold/mae_tolerance, e.g. 'points'."},
+        "scheme": {"x-objective-role": "identity", "type": "string", "enum": ["detection_2", "triple_barrier", "path_vol_normalized", "triple_barrier_atr", "first_passage_r", "candidate_exit_surface"], "description": "Ground-truth qualifying-move semantics. 'first_passage_r': one target is reached before that target's OWN stop within the horizon, distances in R (move_threshold = smallest target taken; stop given by stop_rule, not one mae_tolerance). 'candidate_exit_surface': one row per (decision, side, target level, stop level); the learned outcome is pnl_r of that geometry, not a class. 'detection_2' (default): order-agnostic window filter — peak up-excursion >= move_threshold AND peak adverse excursion < mae_tolerance over the whole window. 'triple_barrier': path-dependent first-touch on the 5s close series. 'path_vol_normalized': join parquet_pathlabels (1s first-touch, vol-normalised barriers, usable=True gate) onto the feature index (ADR-053). 'triple_barrier_atr': first-touch with per-bar ATR multiples (move_threshold / mae_tolerance are ATR multipliers)."},
+        "target_observation": {"x-objective-role": "identity", "type": "string", "enum": ["candle_close", "candle_hilo", "tbbo", "print_tape", "path_1s_hilo"], "description": "Where a barrier touch is observed. 'print_tape': touches and their order observed on individual prints, not assigned by a tie policy; stops remain 5s closes. 'path_1s_hilo': the 1s high/low grid, with an explicit tie_policy. candle_close preserves existing behavior. candle_hilo uses 5s cs_high/cs_low. tbbo uses those lossless 5s extrema, which are aggregated from TBBO trade prints; it is equivalent to candle_hilo at the 5s label grid."},
+        "outcome": {
+          "x-objective-role": "identity",
+          "type": "object",
+          "description": "What a candidate-exit row records and what the model is fitted on. Used by scheme candidate_exit_surface.",
+          "required": ["task", "target", "tie_policy", "time_barrier", "censored_exit", "unfilled_emits_row"],
+          "additionalProperties": false,
+          "properties": {
+            "task": {"type": "string", "enum": ["regression", "classification"]},
+            "target": {"type": "string", "enum": ["pnl_r"]},
+            "tie_policy": {"type": "string", "enum": ["stop_first", "target_first"]},
+            "time_barrier": {"type": "string", "enum": ["session_flatten"]},
+            "censored_exit": {"type": "string", "enum": ["flatten_close"]},
+            "unfilled_emits_row": {"type": "boolean"}
+          }
+        },
+        "candidates": {
+          "x-objective-role": "identity",
+          "type": "object",
+          "description": "How target and stop levels are proposed. Not a single move_threshold or stop_rule.",
+          "required": ["source", "product", "level_lookback_sessions", "sigma_pts", "min_dist_r", "max_dist_r", "fill_min_dist_r", "max_per_side_per_kind", "ladder_r", "budgets"],
+          "additionalProperties": false,
+          "properties": {
+            "source": {"type": "string", "enum": ["kde_bounds_plus_ladder"]},
+            "product": {"type": "string", "enum": ["cartesian_target_stop"]},
+            "level_lookback_sessions": {"type": "integer", "exclusiveMinimum": 0},
+            "sigma_pts": {"type": "number", "exclusiveMinimum": 0},
+            "min_dist_r": {"type": "number", "minimum": 0},
+            "max_dist_r": {"type": "number", "exclusiveMinimum": 0},
+            "fill_min_dist_r": {"type": "number", "minimum": 0},
+            "max_per_side_per_kind": {"type": "integer", "exclusiveMinimum": 0},
+            "ladder_r": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0}, "minItems": 1},
+            "budgets": {"type": "string", "enum": ["separate_structural_and_ladder"]}
+          }
+        },
+        "entry_rule": {
+          "x-objective-role": "identity",
+          "type": "object",
+          "description": "Resting-order fill used when labels.entry is limit on the candidate-exit objective.",
+          "required": ["inside_bound", "between_bounds_offset_pts", "max_fill_wait_seconds", "race_starts_at"],
+          "additionalProperties": false,
+          "properties": {
+            "inside_bound": {"type": "string", "enum": ["far_edge"]},
+            "between_bounds_offset_pts": {"type": "number", "exclusiveMinimum": 0},
+            "max_fill_wait_seconds": {"type": "integer", "exclusiveMinimum": 0},
+            "race_starts_at": {"type": "string", "enum": ["fill"]}
+          }
+        },
+        "selection": {
+          "x-objective-role": "mixed",
+          "type": "object",
+          "description": "How a fitted score becomes the book's trade. Structural rules are identity. Account size and the point value are defaults.",
+          "required": ["per_bar", "book", "busy_seconds", "threshold", "quantiles", "operating_point", "min_trades", "tradability", "costs_applied"],
+          "additionalProperties": false,
+          "properties": {
+            "per_bar": {"x-objective-role": "identity", "type": "string", "enum": ["argmax_predicted_target"]},
+            "book": {"x-objective-role": "identity", "type": "string", "enum": ["one_position"]},
+            "busy_seconds": {"x-objective-role": "identity", "type": "string", "enum": ["t_fill_plus_t_event"]},
+            "threshold": {"x-objective-role": "identity", "type": "string", "enum": ["train_quantiles"]},
+            "quantiles": {"x-objective-role": "identity", "type": "array", "items": {"type": "number"}, "minItems": 1},
+            "operating_point": {"x-objective-role": "identity", "type": "string", "enum": ["max_t_stat"]},
+            "min_trades": {"x-objective-role": "identity", "type": "integer", "exclusiveMinimum": 0},
+            "tradability": {"x-objective-role": "identity", "type": "string", "enum": ["stop_sizes_to_one_contract"]},
+            "costs_applied": {"x-objective-role": "identity", "type": "boolean"},
+            "account": {"x-objective-role": "default", "type": "number", "exclusiveMinimum": 0},
+            "max_risk_pct": {"x-objective-role": "default", "type": "number", "exclusiveMinimum": 0, "maximum": 1},
+            "point_value_dollars": {"x-objective-role": "default", "type": "number", "exclusiveMinimum": 0}
+          }
+        },
+        "atr_feature": {"x-objective-role": "identity", "type": "string", "description": "Column used as ATR when scheme is triple_barrier_atr (e.g. cs_atr_10m)."},
+        "onset_only": {"x-objective-role": "identity", "type": "boolean", "description": "If true, only the first bar of a consecutive TBM run is labelled directional (pop onset)."},
+        "min_target_pts": {"x-objective-role": "identity", "type": "number", "description": "Floor on ATR-scaled profit barrier, in NQ points."},
+        "min_stop_pts": {"x-objective-role": "identity", "type": "number", "description": "Floor on ATR-scaled stop barrier, in NQ points."},
+        "encoding": {"x-objective-role": "default", 
+          "type": "string",
+          "enum": ["three_class", "dual_binary"],
+          "description": "How the scheme is presented to learners. Omit/`three_class` = {BIG_DOWN, NO_SIGNAL, BIG_UP} softmax (existing catalog contract). `dual_binary` (ADR-066) = two independent event probabilities on every decision timestamp: P(long)=P(+move_threshold before -mae_tolerance within horizon) and P(short)=P(-move_threshold before +mae_tolerance within horizon). Not P(side | directional) — that encoding was rejected in ADR-048."
+        },
+        "fire": {"x-objective-role": "default", 
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Dual-binary event cut (ADR-095). Long if p_long > p_short and p_long ≥ fire; short symmetric. Library default 0.1 (ADR-089). nq-50pt-econ-lg-st uses 0.40. 3-class dir_threshold is a different knob."
+        },
+        "aux": {"x-objective-role": "default", 
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "MFE_long_10m",
+              "MFE_short_10m",
+              "MAE_b4_TGTorMFE_long_10m",
+              "MAE_b4_TGTorMFE_short_10m",
+              "forward_return_1m",
+              "forward_return_5m",
+              "forward_return_10m",
+              "MAE_before_target_or_MFE",
+              "Time_to_TGT_long",
+              "Time_to_TGT_short"
+            ]
+          },
+          "description": "Opt-in path-quality aux columns (ADR-084 / ADR-086). Omitted/empty = no aux heads on any family. Dual-binary LSTM only consumes these as Huber train targets; they are not KPI or serving outputs. Columns may still sit on the label parquet as a sidecar. `forward_return_*` is signed close-to-close; the short trunk trains on −z(return). `MAE_before_target_or_MFE` is parquet-only (not a Keras head)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "risk_return": {
+      "x-objective-role": "default",
+      "type": "object",
+      "description": "Trade-economics targets used as guardrails during champion selection. null = not yet formalized.",
+      "properties": {
+        "target_sharpe": {"type": ["number", "null"]},
+        "target_sortino": {"type": ["number", "null"]},
+        "min_hit_rate": {"type": ["number", "null"]},
+        "min_payoff_ratio": {"type": ["number", "null"]},
+        "max_drawdown": {"type": ["number", "null"], "description": "Maximum acceptable drawdown (same unit as P&L, or fraction)."},
+        "max_turnover": {"type": ["number", "null"]}
+      },
+      "additionalProperties": true
+    },
+    "costs": {
+      "x-objective-role": "default",
+      "type": "object",
+      "description": "Cost/slippage assumptions the evaluation contract applies to simulated trades. null = not yet set.",
+      "properties": {
+        "execution_cost_profile": {"type": "string", "description": "Name of a profile in config/execution_costs.yaml. A reference, so commission/slippage/multiplier are not duplicated in the objective."},
+        "cost_per_trade": {"type": ["number", "null"], "description": "Round-trip cost, in `labels.unit`."},
+        "slippage_model": {"type": ["string", "null"], "description": "e.g. 'fixed_1pt', 'spread_proportional'."}
+      },
+      "additionalProperties": true
+    },
+    "kpi": {
+      "x-objective-role": "mixed",
+      "type": "object",
+      "description": "Success criteria. `champion_gate` (opt-in, ADR-071) = run the search champion picker. `requirement` = the bar a model must clear when the gate runs. `target` = the program goal (a flag, never a picker). Custom Test never applies the gate. When `primary` is an economics metric (net_expectancy / hit_rate / sharpe), the champion gate ranks passers by that metric (see ADR-027).",
+      "required": ["primary"],
+      "properties": {
+        "primary": {
+          "x-objective-role": "default",
+          "type": "string",
+          "enum": ["precision_at_tau", "directional_f1", "net_expectancy", "hit_rate", "sharpe", "n_signals", "t_stat"],
+          "description": "Primary ranking metric for the champion gate among passers. Classification metrics rank by precision then dir_f1; economics metrics rank by that scalar then precision."
+        },
+        "champion_gate": {
+          "type": "boolean",
+          "description": "Opt-in champion picker for search / HPO / scoping. Requires a defined kpi.requirement (the gate). Omitted or false = do not pick a champion. Custom Test never gates (ADR-071)."
+        },
+        "tau": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Optional confidence fire-cut (count trades with confidence >= tau). Declared in YAML — never inferred. If omitted, a precision_at_tau.tau on kpi.requirement is used; if neither is set, trades are counted on argmax up/down (no confidence cut)."
+        },
+        "requirement": {"$ref": "#/$defs/criteria_block", "description": "The champion gate when champion_gate is true. Pass if the block's `any`/`all` conditions are satisfied. Must be present and non-empty when champion_gate is true."},
+        "target": {"$ref": "#/$defs/criteria_block", "description": "Experimentation goal. `achieved` when the block's `any`/`all` conditions are satisfied."}
+      },
+      "additionalProperties": false
+    },
+    "eligible_model_families": {
+      "x-objective-role": "default",
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Optional hint constraining the Stage-1 search space, e.g. ['sequence_dl', 'tree_ensemble', 'regime']. Empty/omitted = all catalogued families eligible."
+    },
+    "eval": {
+      "x-objective-role": "default",
+      "type": "object",
+      "description": "Evaluation configuration linking to the frozen contract.",
+      "properties": {
+        "hold_out": {"type": ["string", "null"], "description": "Pinned forward hold-out identifier / data-version hash. null until pinned in W2."},
+        "walk_forward_folds": {"type": "integer", "minimum": 1},
+        "date_range": {
+          "type": "object",
+          "description": "Optional inclusive calendar clip on the training/OOF universe. Applied inside the shared fold cache (src/search/fold_cache.py) — intersected with the parquet dir's natural extent, never expanded past it. Cache key includes the range, so switching windows invalidates cleanly.",
+          "properties": {
+            "start": {"type": ["string", "null"], "description": "Inclusive start date, ISO YYYY-MM-DD. null = use parquet dir's earliest date."},
+            "end":   {"type": ["string", "null"], "description": "Inclusive end date, ISO YYYY-MM-DD. null = use parquet dir's latest date."}
+          },
+          "additionalProperties": false
+        },
+        "walk_forward": {
+          "type": "object",
+          "description": "Optional expanding calendar splitter (ADR-042). When mode is expanding_calendar, Custom Test / --walk-forward-overlay uses month/week/day windows instead of equal bar-count folds.",
+          "additionalProperties": true
+        },
+        "train_uniqueness_bars": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Keep at most one TRAIN bar per this many 5s bars (time-greedy). OOF/test is never thinned. 24 = 2 minutes. Reduces overlapping TBM label dependence."
+        },
+        "train_onset_uniqueness": {
+          "type": "boolean",
+          "description": "Keep the first TBM 50/6 onset, then skip TRAIN bars until that path hits target, stop, or time (ADR-099). Trees drop rows; LSTM keeps the sequence and zero-weights skipped bars. OOF is not thinned."
+        },
+        "bar_stride": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Training-matrix subsample: keep every Nth decision bar. The label file stays on the decision grid."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ensemble": {
+      "x-objective-role": "default",
+      "type": "object",
+      "description": "Optional W6 ensemble-grid tuning. Omitted = defaults (max_base=4, consensus+stacking+vote, majority agreement).",
+      "properties": {
+        "max_base": {"type": "integer", "minimum": 2, "description": "Top-k base learners (by primary precision) to combine."},
+        "methods": {"type": "array", "items": {"type": "string", "enum": ["consensus", "stacking", "vote"]}, "description": "Ensemble methods to build. Never mean-vote as champion — 'vote' is a labeled baseline only."},
+        "min_agree": {"type": "integer", "minimum": 1, "description": "Consensus: min members that must agree to fire. Omit = simple majority."}
+      },
+      "additionalProperties": false
+    },
+    "custom_optimization": {
+      "x-objective-role": "default",
+      "type": "boolean",
+      "description": "Opt-in 3-class expected-cost train loss (ADR-072). true requires cost_matrix. Omitted/false = sparse categorical CE (existing path). Custom Test and search both honor this when fitting 3-class Keras / XGBoost / LightGBM heads. Does not change serving or the champion gate."
+    },
+    "cost_matrix": {
+      "x-objective-role": "default",
+      "type": "object",
+      "description": "3x3 train-time cost table used only when custom_optimization is true. Rows = true class, columns = predicted class, labels down/flat/up. Train minimizes E[cost] = C[true] · softmax. Lower is better. Incorrect up and incorrect down should share one high value; a miss (pred flat | true dir) is a medium value; correct dir is the lowest (reward vs a correct flat).",
+      "required": ["costs"],
+      "additionalProperties": false,
+      "properties": {
+        "labels": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {"type": "string", "enum": ["down", "flat", "up"]},
+          "description": "Must be [down, flat, up] when present."
+        },
+        "costs": {
+          "type": "object",
+          "required": ["down", "flat", "up"],
+          "additionalProperties": false,
+          "properties": {
+            "down": {"$ref": "#/$defs/cost_row"},
+            "flat": {"$ref": "#/$defs/cost_row"},
+            "up": {"$ref": "#/$defs/cost_row"}
+          }
+        }
+      }
+    },
+    "search": {
+      "x-objective-role": "default",
+      "type": "object",
+      "description": "Optional search-time config: HPO trials, per-family feature views (W4 / ADR-027), signal topology (primary+meta, W3 / ADR-027).",
+      "properties": {
+        "tune_trials": {"type": "integer", "minimum": 0, "description": "Optuna trials per tunable candidate. 0 = off (catalog defaults only)."},
+        "max_train_rows": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "Optional cap on train rows per fold. Omit = catalog search_max_rows. 0 = no cap."
+        },
+        "feature_views": {
+          "type": "object",
+          "description": "Per-family named feature view (keys = catalog family names; values = FEATURE_VIEWS keys in src/models/feature_views.py). Overrides catalog defaults.",
+          "additionalProperties": {"type": "string"}
+        },
+        "default_feature_view": {
+          "type": "string",
+          "description": "Fallback named feature view when a family has no objective override and no catalog feature_view. Prefer sparse objective-conditioned views over the full matrix."
+        },
+        "input": {
+          "type": "string",
+          "enum": ["features_5s", "path1s", "native_tf"],
+          "description": "Feature source. path1s = ATR-normalised parquet_path1s + parquet_pathlabels (Encoder A/B). native_tf = per-timeframe native-bar stores (15s/1m/5m predictive + 1h/1d context, ADR-066). Default/omit = 5s engineered parquet."
+        },
+        "decision_timestep": {
+          "type": "string",
+          "enum": ["5s", "15s", "1m", "5m"],
+          "description": "Shared decision-timestamp grid. Every base predicts the same horizon event at this cadence. native_tf default is 15s (finest predictive layer); 1m and 5m are valid grids when a coarser fire cadence is wanted."
+        },
+        "entry_stride": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "path1s only: keep every Nth labelled 1s entry (5 ≈ 5s cadence)."
+        },
+        "usable_only": {
+          "type": "boolean",
+          "description": "path1s only: drop usable=False sessions/rows (supervised default true)."
+        },
+        "topology": {
+          "type": "object",
+          "description": "Signal topology. `single` (default) = one model. `primary_meta` = one primary + trade/no-trade gate. `output_meta` = N walk-forward bases then a binary gate on their outputs (optional context_view). `meta_stack` = N walk-forward bases; a binary LR learns per-base weights on their signed evidence (p_up-p_down or log-odds) and emits P(up), symmetric approve_threshold decides up/down/no-trade. `tf_oof_meta` (ADR-066) = 15s/1m/5m dual-binary bases; walk-forward OOF + 1h/1d context → P_final_long and P_final_short.",
+          "properties": {
+            "mode": {"type": "string", "enum": ["single", "primary_meta", "output_meta", "meta_stack", "tf_oof_meta"]},
+            "bases": {
+              "type": "array",
+              "minItems": 1,
+              "description": "Parallel bases. Strings = catalog family names (output_meta / meta_stack). Objects = native-timeframe dual-head bases (tf_oof_meta): family + native_tf + optional head. 15s is attention_lstm (temporal encoder on the tape); 1m and 5m are xgboost_ovr.",
+              "items": {
+                "oneOf": [
+                  {"type": "string", "minLength": 1},
+                  {
+                    "type": "object",
+                    "required": ["id", "family", "native_tf"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "id": {"type": "string", "minLength": 1, "description": "Stable base id used as the OOF column prefix, e.g. lstm_15s."},
+                      "family": {"type": "string", "minLength": 1, "description": "Catalog family. 15s = attention_lstm; 1m/5m = xgboost_ovr."},
+                      "native_tf": {"type": "string", "enum": ["15s", "1m", "5m"], "description": "Native bar interval of this base's feature store. 15s / 1m / 5m are the three predictive layers; 1h/1d are context only."},
+                      "head": {"type": "string", "enum": ["dual_binary", "ovr", "three_class"], "description": "Omit/`dual_binary`/`ovr` = independent P_long and P_short. three_class = legacy softmax."},
+                      "role": {"type": "string", "enum": ["predictive"]},
+                      "params": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "Merged over the family's catalog params_default for joint search (ADR-095). LSTM 15s: seq_len/epochs; 1m/5m XGB: n_estimators/max_depth/learning_rate."
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "context": {
+              "type": "array",
+              "description": "1h / 1d context joined onto the decision grid for the meta learner.",
+              "items": {
+                "type": "object",
+                "required": ["native_tf"],
+                "additionalProperties": false,
+                "properties": {
+                  "native_tf": {"type": "string", "enum": ["1h", "1d"]},
+                  "role": {"type": "string", "enum": ["context"]}
+                }
+              }
+            },
+            "session_vp": {
+              "type": "boolean",
+              "description": "Attach Globex-session VP (17:00 CT origin, POC / 70% VA + break/reclaim) on the 5m fold cache only. Not hive parquet (ADR-099)."
+            },
+            "outputs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "enum": ["p_final_long", "p_final_short"]},
+              "description": "Serving outputs of tf_oof_meta. Decision is LONG / SHORT / PASS from these two probabilities, not a single confidence."
+            },
+            "meta": {
+              "type": "object",
+              "properties": {
+                "family": {"type": "string", "description": "Binary gate learner (e.g. logistic_regression, xgboost). Not the combo identity. For tf_oof_meta this is the dual-head meta (typically xgboost)."},
+                "context_view": {"type": "string", "description": "Optional named feature view joined by ts onto meta features. Omit = upstream outputs only. (output_meta only.)"},
+                "approve_threshold": {"type": "number", "minimum": 0, "maximum": 1, "description": "Meta P(trade) threshold to approve the proposed side. For meta_stack, symmetric: up if p>=thr, down if p<=1-thr, else flat. For tf_oof_meta, shared floor when long_threshold/short_threshold are omitted."},
+                "long_threshold": {"type": "number", "minimum": 0, "maximum": 1, "description": "tf_oof_meta: fire LONG only if P_final_long >= this and P_final_long > P_final_short."},
+                "short_threshold": {"type": "number", "minimum": 0, "maximum": 1, "description": "tf_oof_meta: fire SHORT only if P_final_short >= this and P_final_short > P_final_long."},
+                "min_primary_confidence": {"type": "number", "minimum": 0, "maximum": 1, "description": "Ignore primary proposals below this confidence before meta training/apply. (primary_meta only.)"},
+                "n_folds": {"type": "integer", "minimum": 2, "description": "Cross-fit folds for leakage-free meta OOF (default 5). For meta_stack / tf_oof_meta walk_forward_OOF, block 0 is warmup so effective coverage is (n_folds-1)/n_folds."},
+                "embargo_bars": {"type": "integer", "minimum": 0, "description": "Bars dropped on each side of a meta test block (default 0). Counted on the decision_timestep grid. Use >= label horizon to limit overlap leak."},
+                "scheme": {"type": "string", "enum": ["walk_forward_OOF", "cross_fit"], "description": "meta_stack / tf_oof_meta. walk_forward_OOF (default): sequential — meta trains on all prior blocks and predicts each next block. Causally identical to live. cross_fit: 5-block time cross-fit with symmetric embargo (more data per prediction, weaker live-parity)."},
+                "feature": {"type": "string", "enum": ["linear_weights", "log_weights"], "description": "meta_stack only. linear_weights (default): per-base signed score s = p_up - p_down in [-1,+1]. log_weights: s = log((p_up+eps)/(p_down+eps)) — enables Bayesian log-linear pooling."},
+                "outputs": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {"type": "string", "enum": ["p_final_long", "p_final_short"]},
+                  "description": "tf_oof_meta meta-head names. Same as topology.outputs."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "kpi_condition": {
+      "type": "object",
+      "description": "One success condition. Classification: precision_at_tau / recall / f1 / directional_f1. Economics (ADR-027): net_expectancy / hit_rate / sharpe / max_drawdown / n_signals.",
+      "required": ["metric", "min"],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "enum": [
+            "precision_at_tau", "recall", "directional_f1", "f1",
+            "net_expectancy", "hit_rate", "sharpe", "max_drawdown", "n_signals"
+          ]
+        },
+        "direction": {"type": "string", "enum": ["up", "down"], "description": "For precision_at_tau / recall / f1. Omit precision_at_tau direction to use overall score precision."},
+        "tau": {"type": "number", "minimum": 0, "maximum": 1, "description": "Required for per-direction precision_at_tau (confidence threshold)."},
+        "min": {"type": "number", "description": "Threshold the metric must clear (for max_drawdown use a negative floor, e.g. min: -200 with op gte)."},
+        "op": {"type": "string", "enum": ["gte", "gt"], "default": "gte"},
+        "min_signals": {"type": "integer", "minimum": 0, "description": "Override min directional signals for a precision_at_tau condition."}
+      },
+      "additionalProperties": false
+    },
+    "cost_row": {
+      "description": "One true-class row of the 3x3 cost matrix: predicted down, flat, up.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["down", "flat", "up"],
+          "additionalProperties": false,
+          "properties": {
+            "down": {"type": "number"},
+            "flat": {"type": "number"},
+            "up": {"type": "number"}
+          }
+        },
+        {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {"type": "number"}
+        }
+      ]
+    },
+    "criteria_block": {
+      "type": "object",
+      "description": "Exactly one of `any` (OR) or `all` (AND) — a non-empty list of conditions.",
+      "properties": {
+        "any": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/kpi_condition"}},
+        "all": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/kpi_condition"}}
+      },
+      "minProperties": 1,
+      "maxProperties": 1,
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

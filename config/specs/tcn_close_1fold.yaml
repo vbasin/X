@@ -1,0 +1,17 @@
+# 5s-close TCN smoke: one expanding-calendar fold, 5 epochs, CPU.
+schema_version: v1
+objective_id: nq-50pt-econ
+ensembles: false
+candidates:
+- id: tcn_close
+  family: tcn_close
+  max_rows: 100000
+  params:
+    epochs: 5
+    batch_size: 256
+    seq_len: 128
+    class_balance: sqrt
+    pooling: last
+  features:
+    columns:
+    - _close

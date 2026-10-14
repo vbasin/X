@@ -1,0 +1,65 @@
+# Current cascade objective: R-scaled NQ, market-order entry, adaptive stop.
+# Identity is cascade_policy.py / move_label.py / r_before(). It does not
+# match mnq-auction-firstpass.yaml. That file is the superseded
+# candidate-exit objective (ADR-123/126): 60s decisions, session-close
+# barrier, resting entry, pnl_r regression. Market entry here fills at
+# the decision price. Earlier adaptive-stop generations are further runs
+# of this objective, not a separate objective id. The resting-limit
+# product is nq-Rscaled-limit. The fixed 0.45 R stop is nq-Rscaled-fixedSL.
+
+objective_id: "nq-Rscaled-mkt"
+schema_version: "v2"
+
+description: >
+  Selective intraday directional trades on NQ at favourable reward:risk.
+  Entry is a market order at the decision price. A decision may take any
+  target of at least 0.25 R; it succeeds if price reaches that target before
+  the target's own adaptive stop (min(0.5 x target, 0.25 R)) within 30
+  minutes, observed on the print tape. R is the median of the prior 5
+  completed sessions. The current session contributes nothing to R.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: >
+      Underlying market and the source of every price this objective predicts
+      on. MNQ-equivalent is a sizing unit only (config/execution_costs.yaml).
+
+directions: [long, short]
+
+economic_intent: positive_selective_net_expectancy_after_costs
+
+horizon:
+  max_trade_horizon: "30m"
+  holding_max: intraday
+
+session:
+  trading_start: "08:30"
+  trading_end: "14:45"
+  flatten: "15:00"
+  timezone: America/Chicago
+  decision_grid_seconds: 5
+
+labels:
+  scheme: first_passage_r
+  target_observation: print_tape
+  entry: market
+  unit: R
+  unit_definition:
+    source: prior_session_median
+    lookback_sessions: 5
+    excludes_current_session: true
+    per_session_metric: median_print_block_range
+    per_session_block_seconds: 300
+  move_threshold: 0.25
+  stop_rule:
+    ratio_to_target: 0.5
+    max: 0.25
+
+kpi:
+  primary: net_expectancy
+
+costs:
+  execution_cost_profile: MNQ_equivalent

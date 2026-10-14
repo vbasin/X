@@ -1,0 +1,79 @@
+# Regime feature-set A/B — does the options-market implied-vol channel improve a
+# price-derived (returns/vol proxy) regime descriptor?
+#
+#   Baseline   regime_min    = rv_ + vw_          (~11 dims)  — "returns/vol only"
+#   Treatment  regime_min_iv = rv_ + vw_ + iv_    (~25 dims)  — + forward-looking IV
+#
+# The baseline is the achievable stand-in for a Khay/QuantStart "returns-only" HMM:
+# the parquet has no NQ return column (see docs/reference/FEATURE_CATALOG.md — _close
+# is label-only), so realized volatility (rv_) + VWAP-relative price location (vw_)
+# stand in. A Gaussian model recovers vol/trend/chop regimes from these via each
+# state's emission variance. The ONLY orthogonal channel added in the treatment is
+# the implied-vol surface (iv_) — genuinely forward-looking information the return
+# series cannot contain. Cross-asset correlation and microstructure/liquidity are
+# deliberately excluded from this comparison.
+#
+# Vehicles:
+#   * GMM — per-bar (2-D), native BIC, low-dim (no PCA needed).
+#   * HMM — sequence/persistence (flattened window), PCA(0.95) + manual BIC.
+# State count K is chosen by BIC over K=3..9 (not hard-coded). "Router precision"
+# (precision_at_tau on the directional universe) comes from the frozen eval contract,
+# so each candidate is scored on the same yardstick as any model candidate.
+#
+# Run (local CPU — no GPU VM cost; all four families are CPU):
+#   env -u GPU_INSTANCE_OCID python -m src.search.controller --objective nq-50pt \
+#       --manual-spec config/regime_ab.yaml --no-ensemble
+#
+# Dry-run (validate spec + feature names only):
+#   env -u GPU_INSTANCE_OCID python -m src.search.controller --objective nq-50pt \
+#       --manual-spec config/regime_ab.yaml --no-ensemble --dry-run
+#
+# Validates against config/manual_candidates.schema.json.
+
+schema_version: v1
+objective_id: nq-50pt
+ensembles: false
+
+candidates:
+
+  # ── GMM (per-bar) — baseline vs +IV ───────────────────────────────────────
+  - id: gmm_min
+    family: gmm
+    params:
+      select_k: [3, 9]          # BIC-select the component count
+      covariance_type: diag
+      reg_covar: 1.0e-4
+      max_iter: 200
+    features:
+      view: regime_min
+
+  - id: gmm_min_iv
+    family: gmm
+    params:
+      select_k: [3, 9]
+      covariance_type: diag
+      reg_covar: 1.0e-4
+      max_iter: 200
+    features:
+      view: regime_min_iv
+
+  # ── HMM (sequence / persistence) — baseline vs +IV ────────────────────────
+  - id: hmm_min
+    family: hmm
+    params:
+      select_k: [3, 9]          # BIC-select the state count
+      covariance_type: diag
+      n_iter: 100
+      pca_variance: 0.95        # decorrelate + shrink the flattened-window input
+    features:
+      view: regime_min
+
+  - id: hmm_min_iv
+    family: hmm
+    params:
+      select_k: [3, 9]
+      covariance_type: diag
+      n_iter: 100
+      pca_variance: 0.95
+    features:
+      view: regime_min_iv

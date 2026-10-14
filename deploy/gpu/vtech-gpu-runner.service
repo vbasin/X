@@ -1,0 +1,49 @@
+# vtech-gpu-runner.service — GPU execution plane runner (Phase 23 W9 / ADR-015)
+#
+# Deploy ON THE GPU VM (us-phoenix-1 A10), not the CPU VM:
+#   sudo cp deploy/gpu/vtech-gpu-runner.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now vtech-gpu-runner
+#
+# On boot it long-polls the OCI Queue jobs channel (get → fetch code bundle → run in a
+# subprocess → upload results → publish result message → ack). After GPU_RUNNER_IDLE_SECS with no
+# work it powers the GPU VM off **itself** via the OCI API (--stop-vm-on-idle), so the runner and
+# the billed compute stop together (ADR-022 revised) — the CPU never issues STOP. The CPU
+# orchestrator only ever calls the OCI Compute API (START via ensure_running) + OCI Queue +
+# Object Storage; no inbound connection is ever made to this VM.
+#
+# Prereqs on the GPU VM: /opt/vtech present (git clone or baked image), venv at /opt/vtech/venv,
+# .env with AWS_* + MLFLOW_S3_ENDPOINT_URL + OCI_BUCKET **and** OCI_QUEUE_ID +
+# OCI_QUEUE_MESSAGES_ENDPOINT (the runner fails fast without them), and the feature data available
+# (sources/features parquet_* + hive timeframe=*/ synced via deploy/gpu/sync_parquet.py).
+
+[Unit]
+Description=VTech GPU job runner (model-selection search execution plane)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=opc
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+# Hard cap on concurrent jobs — a safety net only. Real admission is resource-based:
+# the runner's ResourceGovernor gauges live cores / memory / GPU slots and sizes each
+# job's thread budget + device from its family profile (no hardcoded worker count).
+Environment=GPU_RUNNER_MAX_JOBS=6
+# Idle window before the runner powers the VM off itself (cold boot is ~2 min, so keep this well
+# above that to avoid thrashing between waves).
+Environment=GPU_RUNNER_IDLE_SECS=600
+# Route xgboost/lightgbm onto the A10 (CPU VM leaves this unset → stays CPU-only).
+# The runner passes this through per-job ONLY when it grants that job a GPU slot.
+Environment=VTECH_TREE_DEVICE=cuda
+# Sync the latest code + feature parquets before draining (best-effort; no inbound path).
+ExecStartPre=-/bin/bash -lc 'bash /opt/vtech/deploy/gpu/git_update.sh /opt/vtech || true'
+ExecStartPre=-/bin/bash -lc 'set -a && source /opt/vtech/.env && set +a && \
+    /opt/vtech/venv/bin/python /opt/vtech/deploy/gpu/sync_parquet.py "${VTECH_DATA_DIR:-/opt/vtech/data}/sources/features" || true'
+ExecStart=/opt/vtech/venv/bin/python -m src.gpu_runner.runner --max-jobs ${GPU_RUNNER_MAX_JOBS} --idle-exit-secs ${GPU_RUNNER_IDLE_SECS} --stop-vm-on-idle
+# Restart only on failure; a clean idle-exit (which powers the VM off) is the intended end path.
+Restart=on-failure
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

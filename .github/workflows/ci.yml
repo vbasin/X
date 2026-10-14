@@ -1,0 +1,25 @@
+name: Public showcase
+on:
+  pull_request:
+  push:
+    branches: [main, publication/platform-showcase]
+jobs:
+  synthetic-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -r requirements-demo.lock
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff check src/demo.py tests/test_public_demo.py --select E9,F63,F7,F82,F401
+      - run: make test-publication
+      - run: vtech-demo --output .demo-output/ci
+      - uses: actions/upload-artifact@v4
+        with:
+          name: synthetic-showcase
+          path: .demo-output/ci/
+          retention-days: 7

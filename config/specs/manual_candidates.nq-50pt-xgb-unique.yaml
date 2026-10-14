@@ -1,0 +1,40 @@
+# Causal tree proof for nq-50pt-xgb-unique (ADR-046).
+# Same prefixes as leak-trained registry champion xgb_tbm_topgroups, on the
+# ADR-041 closed-bar parquet. Uniqueness / calendar WF / cost come from the
+# objective. Does not change config.yaml live pin.
+#
+#   env -u GPU_INSTANCE_OCID python -m src.search.controller \
+#     --objective nq-50pt-xgb-unique \
+#     --manual-spec config/specs/manual_candidates.nq-50pt-xgb-unique.yaml \
+#     --no-ensemble
+
+objective_id: nq-50pt-xgb-unique
+ensembles: false
+
+candidates:
+  - id: xgb_causal_topgroups
+    family: xgboost
+    features:
+      prefixes: [cs_, rv_, vp_, iv_]
+    params:
+      n_estimators: 150
+      max_depth: 4
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      class_balance: sqrt
+      dir_threshold: 0.5
+
+  - id: xgb_causal_ovr
+    family: xgboost_ovr
+    features:
+      prefixes: [cs_, rv_, vp_, iv_]
+    params:
+      n_estimators: 150
+      max_depth: 4
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      class_balance: sqrt
+      dir_threshold: 0.55
+      head: ovr

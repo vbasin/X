@@ -1,0 +1,34 @@
+# TBM three-model test — (c) raw-data LSTM on NQ 1-second OHLCV + VIX 1-minute close.
+#
+# Dataset: data/parquet_raw1s/ (scripts/build_raw1s_dataset.py) — stationary
+# transforms of the RAW sources only (databento.ohlcv_1s NQ.c.0 + tt_candles
+# VIX{=m}); NO engineered feature groups. 7 input dims. The fold builder probes
+# the 1s bar interval automatically → the objective's 10m horizon = 600-bar
+# triple-barrier window; seq_len 128 = ~2 minutes of look-back context.
+#
+# Run (GPU VM execution plane; the job self-syncs the dataset dir from
+# s3://vtech_hot/parquet_raw1s/ when absent — src/gpu_runner/job_exec.py):
+#   python -m src.search.controller --objective nq-50pt-tbm \
+#       --manual-spec config/tbm_lstm_raw1s.yaml \
+#       --parquet-dir /opt/vtech/data/parquet_raw1s --no-ensemble
+#
+# Validates against config/manual_candidates.schema.json.
+
+schema_version: v1
+objective_id: nq-50pt-tbm
+ensembles: false              # single candidate; cross-run combos in analyze_tbm_combos.py
+
+candidates:
+  - id: lstm_raw1s
+    family: attention_lstm
+    params:
+      lstm_units: [64, 32]
+      attention_heads: 4
+      dense_units: [64, 32]
+      dropout: 0.2
+      seq_len: 128
+      n_features: 7           # auto-rebuilt from actual fold width; kept for clarity
+      epochs: 12
+    # Per-fold train row cap: 5.8M 1s rows × 3 expanding folds is out of budget for
+    # a first capability probe; 150k sequences/fold keeps the A10 wave ≤ ~1h.
+    max_rows: 150000

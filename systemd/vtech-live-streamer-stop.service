@@ -1,0 +1,7 @@
+[Unit]
+Description=Stop VTech live streamer at CME Friday close (4pm CT)
+Documentation=file:///opt/vtech/systemd/vtech-live-streamer.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/systemctl stop vtech-live-streamer.service

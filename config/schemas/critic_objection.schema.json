@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CriticReview",
+  "description": "ADR-025 structured output of the parameterized critic harness and of interface-scoped cross-review. Objections must carry severity + evidence; a 'no_material_objections' verdict is valid ONLY with a completed verification checklist (anti-sycophancy). Cross-review objections must tag the interface assumption they attack — out-of-domain objections are dropped by the orchestrator.",
+  "type": "object",
+  "required": ["reviewer", "target", "verdict", "objections", "verification"],
+  "properties": {
+    "reviewer": {
+      "type": "object",
+      "required": ["role", "field"],
+      "properties": {
+        "role": {"type": "string", "enum": ["critic", "cross_review"],
+                  "description": "critic = parameterized adversarial harness; cross_review = the other field's expert reviewing interface assumptions."},
+        "field": {"type": "string",
+                   "description": "Domain knowledge composed into the reviewer, e.g. quant_trading | ml_data_scientist."},
+        "model": {"type": "string", "description": "LLM model/provider used (cross-model decorrelation record)."}
+      },
+      "additionalProperties": false
+    },
+    "target": {"type": "string", "minLength": 1,
+                "description": "Artifact reviewed, e.g. 'pass_a_quant_trading.md r2'."},
+    "verdict": {"type": "string", "enum": ["no_material_objections", "revise"]},
+    "objections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target_claim", "severity", "kind", "evidence"],
+        "properties": {
+          "id": {"type": "string"},
+          "target_claim": {"type": "string", "minLength": 1,
+                            "description": "The specific claim/omission attacked — quote or pinpoint it."},
+          "severity": {"type": "string", "enum": ["blocker", "major", "minor"],
+                        "description": "blocker/major = material (forces a revision round); minor = advisory."},
+          "kind": {"type": "string",
+                    "enum": ["unsupported_claim", "contradicted_by_evidence", "omission",
+                             "methodology", "feasibility", "over_hedging",
+                             "unexplored_concept", "out_of_domain"],
+                    "description": "over_hedging = load-bearing conclusions left uncommitted/all-provisional; unexplored_concept = a field-relevant concept the author's retrieval trace never researched (forces a fresh, tool-enabled research round); out_of_domain marks an objection outside the reviewer's scope — recorded but dropped."},
+          "evidence": {
+            "type": "array",
+            "minItems": 1,
+            "description": "What grounds the objection: retrieval hits, citation-check results, counter-evidence.",
+            "items": {
+              "type": "object",
+              "required": ["source_ref"],
+              "properties": {
+                "tier": {"type": "string", "enum": ["T1", "T2", "T3"]},
+                "source_ref": {"type": "string", "minLength": 1},
+                "note": {"type": "string"}
+              },
+              "additionalProperties": false
+            }
+          },
+          "interface_assumption": {
+            "type": ["string", "null"],
+            "description": "cross_review ONLY: the interface assumption attacked (e.g. 'labels are learnable at 5s granularity', 'VIX 1-min is timely enough for the gate'). REQUIRED non-null for cross_review objections — the orchestrator drops untagged ones."
+          },
+          "suggestion": {"type": "string", "description": "Concrete fix the author could apply."}
+        },
+        "additionalProperties": false
+      }
+    },
+    "verification": {
+      "type": "object",
+      "required": ["checks_completed"],
+      "description": "The targeted verification actually performed (artifact-first → targeted tools, ADR-025 §4.3).",
+      "properties": {
+        "checks_completed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Named checks run, e.g. 'citation_grounding', 'omission_probe:regime_features', 'counter_evidence:tbm_mae6'."
+        },
+        "citations_checked": {"type": "integer", "minimum": 0},
+        "omission_probes": {"type": "array", "items": {"type": "string"},
+                             "description": "Coverage queries issued against the objective's key axes."},
+        "counter_evidence_queries": {"type": "array", "items": {"type": "string"},
+                                      "description": "Searches that actively tried to falsify the headline recommendation."}
+      },
+      "additionalProperties": false
+    },
+    "n_dropped_out_of_domain": {
+      "type": "integer", "minimum": 0,
+      "description": "Set by the orchestrator on persisted cross-review artifacts: objections dropped by the interface-scope filter (untagged or self-declared out_of_domain)."
+    }
+  },
+  "additionalProperties": false,
+  "if": {"properties": {"verdict": {"const": "no_material_objections"}}},
+  "then": {
+    "properties": {
+      "verification": {
+        "properties": {"checks_completed": {"minItems": 3}},
+        "required": ["checks_completed"]
+      }
+    }
+  }
+}

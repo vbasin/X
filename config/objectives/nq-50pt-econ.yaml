@@ -1,0 +1,138 @@
+# Trade Objective — nq-50pt-econ
+# Economics-first TBM objective that proves ADR-027:
+#   W1 — champion ranking + requirement/target use label-implied trade economics
+#        (net_expectancy) with precision floors, not precision-only selection.
+#   W3 — signal topology primary_meta: direction model + cross-fitted meta trade/no-trade
+#        gate (López de Prado), activated in the search controller.
+#   W4 — objective-conditioned sparse feature views are the default search path
+#        (momentum_edge / sequence_baseline), not the full ~183-col matrix.
+#
+# Same instrument / horizon / TBM barriers as nq-50pt-tbm; different *decision surface*.
+# ACTIVATION: set `objective_id: "nq-50pt-econ"` in config.yaml, or pass
+#   python -m src.search.controller --objective nq-50pt-econ ...
+
+objective_id: "nq-50pt-econ"
+schema_version: "v2"
+
+description: >
+  Capture asymmetric TBM economics on NQ: +50 pt first-touch profit barrier vs
+  -6 pt stop within 10 minutes, maximizing per-trade net expectancy after costs
+  while keeping directional precision floors. Primary direction model + meta
+  trade/no-trade gate; sparse momentum feature views.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, triple_barrier, meta_label, economics]
+
+data_availability:
+  note: >
+    Full order-book depth (MBP-10 / L1–L10) is UNAVAILABLE and will not be acquired.
+    Work only from available L1 TBBO + engineered feature groups; prefer sparse
+    momentum_edge / sequence_baseline views over inventing deep-book features.
+  available:
+    - "databento.tbbo (L1 NQ lead-month) + engineered 5s feature parquet program=nq-50pt-08-15-cst"
+    - "Options-derived IV/GEX columns when present in the feature parquet (not required)"
+  unavailable:
+    - "MBP-10 / full order-book depth (L1–L10) — not sourced, not acquirable."
+
+horizon:
+  max_trade_horizon: "10m"
+  holding_max: intraday
+
+session:
+  training_start: "08:02"
+  training_end: "14:45"
+  trading_start: "08:30"
+  trading_end: "14:45"
+  timezone: America/Chicago
+
+labels:
+  scheme: triple_barrier
+  move_threshold: 50
+  mae_tolerance: 6
+  unit: points
+
+# Explicit costs so expectancy is net of friction (1 NQ point ≈ round-trip friction proxy).
+costs:
+  cost_per_trade: 0
+  slippage_model: fixed_1pt
+
+risk_return:
+  min_hit_rate: 0.55
+  min_payoff_ratio: 3.0          # structural barrier R ≈ 50/6 ≈ 8.3; soft floor for sanity
+  max_drawdown: -250             # cumulative label-implied points (gate floor uses max_drawdown metric)
+
+kpi:
+  # Rank passers by economics (ADR-027); precision remains a hard floor in requirement.
+  primary: net_expectancy
+  champion_gate: true
+
+  # Champion gate is the requirement block below (ADR-071). No confidence fire-cut
+  # is declared (no kpi.tau / precision_at_tau.tau), so NE / n_signals / hit_rate
+  # count every argmax up/down. Custom Test never applies this picker.
+
+  # Champion gate: ECONOMICS-NATIVE floors (ADR-027). Precision is reported and
+  # used as a target/diagnostic, not the sole gate — label-implied hit rate +
+  # expectancy already encode directional quality under asymmetric barriers.
+  # min n_signals uses directional trades at the gate (not high-conf flats).
+  requirement:
+    all:
+      - {metric: net_expectancy, min: 20.0}          # pts/trade after cost
+      - {metric: n_signals, min: 30}                 # enough directional fires
+      - {metric: hit_rate, min: 0.55}                # better than coin-flip under barriers
+      - {metric: max_drawdown, min: -400, op: gte}   # cumulative label-implied pts floor
+
+  # Program goal: higher expectancy + dual-side high-τ precision.
+  target:
+    all:
+      - {metric: net_expectancy, min: 30.0}
+      - {metric: hit_rate, min: 0.65}
+      - {metric: precision_at_tau, direction: up,   tau: 0.9, min: 0.85, min_signals: 15}
+      - {metric: precision_at_tau, direction: down, tau: 0.9, min: 0.85, min_signals: 15}
+
+# Prefer cheap/moderate families for the economics proof path; expand later via search.
+eligible_model_families:
+  - xgboost
+  - lightgbm
+  - random_forest
+  - logistic_regression
+  - svm
+
+eval:
+  # Reuse the nq-50pt-tbm hold-out pin (same feature parquet vintage / dates).
+  hold_out: "e68510982d9f"
+  walk_forward_folds: 3
+
+ensemble:
+  max_base: 3
+  methods: [consensus, stacking]
+  min_agree: 2
+
+search:
+  tune_trials: 0
+  # W4 — objective-conditioned sparse views (never default to full matrix here).
+  default_feature_view: momentum_edge
+  feature_views:
+    xgboost: momentum_edge
+    lightgbm: momentum_edge
+    random_forest: momentum_edge
+    logistic_regression: momentum_edge
+    svm: momentum_edge
+    attention_lstm: sequence_baseline
+    tcn: sequence_baseline
+    transformer: sequence_baseline
+    cnn: sequence_baseline
+  # W3 — primary direction + cross-fitted meta trade/no-trade gate.
+  topology:
+    mode: primary_meta
+    meta:
+      family: xgboost
+      context_view: regime_core
+      approve_threshold: 0.50
+      min_primary_confidence: 0.50
+      n_folds: 5

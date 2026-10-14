@@ -1,0 +1,62 @@
+# vtech — single source of truth for non-secret runtime configuration.
+
+# ── Active trade objective ──────────────────────────────────────────────────
+# Names the objective doc under config/objectives/<id>.yaml that defines the
+# label thresholds / session / KPI. An explicit pin is required when multiple
+# objective files exist. Options:
+#   nq-50pt       — Detection-2, precision@τ gate
+#   nq-50pt-tbm   — Triple barrier, precision@τ gate
+#   nq-50pt-econ       — TBM + economics ranking + primary/meta (ADR-027)
+#   nq-50pt-econ-lg-st — dual P_final_long / P_final_short + 15s/1m/5m OOF meta (ADR-066)
+objective_id: "nq-50pt-econ"
+
+# ── MLflow tracking server ──────────────────────────────────────────────────
+# Backend store: postgresql database "mlflow" (created 2026-06-23).
+# Artifact root: OCI Object Storage (S3-compatible endpoint).
+# GPU instance should set MLFLOW_TRACKING_URI=http://<cpu-instance-ip>:5000.
+# MLFLOW_S3_ENDPOINT_URL in .env must be set to the OCI S3-compat endpoint:
+#   https://<oci_namespace>.compat.objectstorage.us-phoenix-1.oraclecloud.com
+mlflow:
+  tracking_uri: "http://127.0.0.1:5000"
+  artifact_root: "s3://example-bucket/mlflow/artifacts/"
+
+dataset parameters:
+  # NOTE: session hours + timezone are objective-defining and live ONLY in the
+  # objective doc's `session` block — do not duplicate them here. The keys below
+  # are feature-engine knobs that are NOT part of the trade objective.
+  feature_timestep: 5s
+  scaler_type: robust
+  bbo_primary_only: true   # restricts bbo_1s to lead contract; set false to include all strikes
+
+
+model hyperparameters:
+  sequence_length: 128
+  num_classes: 3                # 3-classes = BIG_DOWN=0, NO_SIGNAL=1, BIG_UP=2
+  class_weight_directional: 4.0   
+  lstm_units: [128]
+  attention_heads: 0        
+  dense_units: [64]
+  dense_dropout: 0.30
+
+training:
+  seed: 42
+  batch_size: 64
+  epochs: 30
+  learning_rate: 0.0002      
+  early_stop_patience: 8      
+  early_stop_min_delta: 0.001
+  lr_reduce_patience: 5       
+  lr_reduce_factor: 0.5
+  min_lr: 0.00001
+  lr_schedule: cosine         
+  lr_warmup_epochs: 5         
+  use_focal_loss: false       
+  focal_loss_gamma: 2.0       
+  intraop_threads: 4          
+  train_sequences: null        # null = use all training data (no cap); XLA is off so cap serves no purpose
+  min_steps_per_epoch: 50      # target steps/epoch for adaptive batch sizing AND floor safety net (see trainer.py balanced block)
+  use_balanced_sampling: true 
+  use_adaptive_batch_size: true  # scale batch_size down so natural steps ≈ min_steps_per_epoch; set false to use batch_size as-is
+
+logging:
+  level: INFO

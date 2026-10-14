@@ -1,0 +1,51 @@
+.env
+.env.*
+!.env.example
+
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+.ruff_cache/
+
+logs/
+
+# data/ is the runtime data directory — nothing in it belongs in git.
+# Feature parquets are published to OCI Object Storage (vtech_hot); the GPU VM
+# pulls them via deploy/gpu/sync_parquet.py. mlruns/ was the legacy MLflow
+# local store (server now uses Postgres + data/mlflow_artifacts/).
+data/*
+
+.DS_Store
+
+scripts/archive/
+# MLflow local file store (legacy pre-server runs — server uses Postgres + data/mlflow_artifacts/)
+mlruns/
+
+# Merge/editor leftovers
+*.orig
+*.rej
+*.bak
+
+# Local tool state and scratch — not project content
+/home/
+/ops_backups/
+/.../
+/=
+/Untitled*.ipynb
+
+# Ad-hoc data and reports dropped at the repo root; data belongs under data/ (git-ignored)
+/*.parquet
+/*.csv
+/summary.json
+
+# Generated public demo outputs and release validation installations.
+/.demo-output/
+/.venv/
+/wheelhouse/

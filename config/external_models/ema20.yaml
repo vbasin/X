@@ -1,0 +1,24 @@
+# Factory card: 20 EMA slope (ADR-062). Split from the Pine SAR+EMA overlay.
+# Operator-saved defaults live under $VTECH_DATA_DIR/ops/webui/external_models/
+# and overlay these values. This file is the factory reset target.
+id: ema20
+title: 20 EMA
+kind: pine_replica
+engine: ema
+stage: 0
+timeframe: 1min
+candle_table: databento.tbbo_1min
+symbol_root: NQ
+pine_version: 6
+description: >
+  Dual EMA slope filters from the TradingView "Parabolic SAR & 20EMA"
+  overlay, as their own long/short book. Established slope (EMA vs SMA
+  of the last L EMA values) plus steep slope (last S EMA steps strictly
+  monotonic). Long when L and S agree up; short when they agree down;
+  flat when they disagree or are warming up. Session, ATR gate, profit
+  target / stop loss, sides, and costs are Backtest Parameters on the
+  Backtest tab (EXT Model).
+params:
+  ema_length: 20
+  ema20_l_bars: 8
+  ema20_s_bars: 2

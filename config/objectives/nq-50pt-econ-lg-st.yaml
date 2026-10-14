@@ -1,0 +1,148 @@
+# Trade Objective — nq-50pt-econ-lg-st
+# Same TBM 50/6/10m economics as nq-50pt-econ; independent P_final_long /
+# P_final_short via 15s/1m/5m bases + 1h/1d context meta (ADR-066).
+# Precision is diagnostic-only. Live pin unchanged.
+#
+# python -m src.search.controller --objective nq-50pt-econ-lg-st --no-ensemble
+# Trains topology bases (15s/1m/5m) then OOF meta (ADR-066 / ADR-092 / ADR-093).
+# Live pin unchanged.
+
+objective_id: "nq-50pt-econ-lg-st"
+schema_version: "v2"
+
+description: >
+  Capture asymmetric TBM economics on NQ with independent long and short
+  probabilities. Native 15s / 1m / 5m bases each emit P_long and P_short for
+  the same 10-minute +50/-6 event from the same decision timestamp. 1h and 1d
+  bars are a slim vol/trend/location pack joined onto the bases and the meta.
+  A meta XGBoost on walk-forward OOF probabilities plus that pack emits
+  P_final_long and P_final_short. Session 08:30–11:00 CT. Train keeps TBM
+  onsets only until the 50/6 path resolves (ADR-099). Fire is argmax and
+  max(p) ≥ 0.40. Rank by net expectancy after costs; no precision gate.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, triple_barrier, dual_binary, economics, native_tf, tf_oof_meta]
+
+horizon:
+  max_trade_horizon: "10m"
+  holding_max: intraday
+
+session:
+  training_start: "08:30"
+  training_end: "11:00"
+  trading_start: "08:30"
+  trading_end: "11:00"
+  timezone: America/Chicago
+
+labels:
+  scheme: triple_barrier
+  encoding: dual_binary
+  move_threshold: 50
+  mae_tolerance: 6
+  unit: points
+  # Profit barrier source; the adverse 6-point stop remains 5s-close based.
+  # tbbo reads 5s cs_high/cs_low, lossless extrema aggregated from TBBO prints.
+  target_observation: tbbo
+  # Event cut: argmax AND max(p) ≥ fire (ADR-095). 0.1 over-fired ~70% of
+  # 15s bars (NE −1.2). Holdout meta at 0.40 was n=5k HR 0.17 NE +3.45.
+  fire: 0.40
+  # Path-quality aux (ADR-084 / ADR-086 / ADR-095 / ADR-098). LSTM Huber +
+  # stop-first BCE; trees use MFE near-miss sample weights. Not KPI / not
+  # serving. Time_to_TGT is seconds to first ±50; no-hit inside 10m is NaN
+  # (not 600). Dropped 1m/5m returns (redundant with 10m). MAE_b4 also
+  # grows long_stop_first / short_stop_first.
+  aux:
+    - MFE_long_10m
+    - MFE_short_10m
+    - MAE_b4_TGTorMFE_long_10m
+    - MAE_b4_TGTorMFE_short_10m
+    - forward_return_10m
+    - Time_to_TGT_long
+    - Time_to_TGT_short
+
+costs:
+  cost_per_trade: 0
+  slippage_model: fixed_1pt
+
+kpi:
+  # Rank by economics (ADR-066). Precision is diagnostic-only.
+  primary: net_expectancy
+  requirement:
+    all:
+      - {metric: n_signals, min: 50}
+  target:
+    all:
+      - {metric: n_signals, min: 50}
+
+eligible_model_families:
+  - xgboost
+  - lightgbm
+  - random_forest
+  - logistic_regression
+  - svm
+  - tcn
+  - lstm
+  - cnn
+  - transformer
+  - hmm
+  - gnn
+  
+search:
+  tune_trials: 0
+  input: native_tf
+  decision_timestep: 15s
+  topology:
+    mode: tf_oof_meta
+    outputs: [p_final_long, p_final_short]
+    bases:
+      # 15s is the temporal tape: LSTM over micro-structure (sa.md). Trees do not
+      # replace this base. 1m/5m stay gradient-boosted dual-binary heads.
+      # Params are the 2026-08-28 Custom Test keepers, not catalog defaults
+      # (joint 215046Z trained 150/4/0.05 trees and seq_len=128).
+      - id: lstm_15s
+        family: attention_lstm
+        native_tf: "15s"
+        head: dual_binary
+        role: predictive
+        params: {seq_len: 60, epochs: 10, class_balance: sqrt}
+      - id: xgb_1m
+        family: xgboost_ovr
+        native_tf: "1m"
+        head: dual_binary
+        role: predictive
+        params: {n_estimators: 250, max_depth: 12, learning_rate: 0.02, class_balance: sqrt}
+      - id: xgb_5m
+        family: xgboost_ovr
+        native_tf: "5m"
+        head: dual_binary
+        role: predictive
+        params: {n_estimators: 250, max_depth: 8, learning_rate: 0.05, class_balance: sqrt}
+    session_vp: true
+    context:
+      - {native_tf: "1h", role: context}
+      - {native_tf: "1d", role: context}
+    meta:
+      family: xgboost
+      scheme: walk_forward_OOF
+      n_folds: 3
+      embargo_bars: 40
+      outputs: [p_final_long, p_final_short]
+
+eval:
+  date_range:
+    start: "2025-05-01"
+    end: "2026-06-30"
+  walk_forward_folds: 3
+  walk_forward:
+    mode: expanding_calendar
+    train: {n: 4, unit: months}
+    test: {n: 4, unit: months}
+    purge_bars: 120
+    purge_seconds: 600
+  train_onset_uniqueness: true

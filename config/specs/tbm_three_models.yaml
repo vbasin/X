@@ -1,0 +1,47 @@
+# TBM three-model test — CPU-family candidates (XGBoost + HMM) on the
+# nq-50pt-tbm objective (Triple Barrier labels, mae_tolerance=6).
+#
+# Companion spec: config/tbm_lstm_raw1s.yaml (raw-data LSTM, separate run because
+# it trains on the 1-second raw dataset dir, not the 5s feature parquets).
+#
+# Run (GPU VM execution plane — ADR-015/022; .env provides GPU_INSTANCE_OCID):
+#   python -m src.search.controller --objective nq-50pt-tbm \
+#       --manual-spec config/tbm_three_models.yaml
+#
+# Validates against config/manual_candidates.schema.json.
+
+schema_version: v1
+objective_id: nq-50pt-tbm
+ensembles: true               # stage-2 consensus/stacking/vote over the two OOF frames
+
+candidates:
+
+  # (a) XGBoost — FULL engineered feature matrix (~180 cols), TBM labels.
+  #     No max_rows: full-fidelity walk-forward on all rows (manual-mode default).
+  - id: xgb_tbm_full
+    family: xgboost
+    params:
+      n_estimators: 300
+      max_depth: 8
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      eval_metric: mlogloss
+      class_balance: sqrt
+      dir_threshold: 0.5
+
+  # (b) HMM — regime identification on the minimal "basic" descriptor set
+  #     (regime_min: VWAP distance/slope + realized vol level/ratio — deliberately
+  #     isolated columns, no engineered-group sprawl). BIC-selected state count.
+  #     Row cap matches the catalog's regime-family search cap: hmmlearn EM on the
+  #     full 1.4M-row matrix is intractable and adds nothing for regime discovery.
+  - id: hmm_regime_min
+    family: hmm
+    params:
+      select_k: [3, 9]
+      covariance_type: diag
+      n_iter: 100
+      pca_variance: 0.95
+    features:
+      view: regime_min
+    max_rows: 50000

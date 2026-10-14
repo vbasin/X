@@ -1,0 +1,23 @@
+[Unit]
+Description=Enable zswap compressed swap cache (DISK_RECLAIM_2026_10 Stage 7-A)
+Documentation=file:///opt/vtech/docs/operations/DISK_RECLAIM_2026_10.md
+# Must run before any swap device is activated, after /opt/vtech/data is mounted
+# (the swapfile lives there). DefaultDependencies=no keeps us out of the
+# sysinit.target -> swap.target ordering cycle.
+DefaultDependencies=no
+After=local-fs.target
+Before=swap.target
+ConditionPathExists=/sys/module/zswap/parameters/enabled
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# zstd is a module on this kernel; zsmalloc and zswap itself are built in.
+ExecStart=-/usr/sbin/modprobe zstd
+ExecStart=/bin/sh -c 'echo zsmalloc > /sys/module/zswap/parameters/zpool'
+ExecStart=/bin/sh -c 'echo zstd     > /sys/module/zswap/parameters/compressor'
+ExecStart=/bin/sh -c 'echo 20       > /sys/module/zswap/parameters/max_pool_percent'
+ExecStart=/bin/sh -c 'echo Y        > /sys/module/zswap/parameters/enabled'
+
+[Install]
+WantedBy=swap.target

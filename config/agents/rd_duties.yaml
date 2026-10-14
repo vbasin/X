@@ -1,0 +1,151 @@
+# Research Director model-improvement loop — stage duties + per-field red-flag checklists.
+#
+# Composed at RUNTIME by src.research_director.orchestrator with the base expert personas
+# (config/agents/quant_trading.md, ml_data_scientist.md — role-neutral identity/lenses ABOVE
+# the SHARED-EXPERTISE-END marker), exactly as scoping composes scoping_duties.yaml. The
+# red-flag checklists are injected into the cross-model critic harness for the reviewed field.
+#
+# Unlike scoping (which scopes a brand-new objective from a blank slate), the RD works from the
+# EXISTING model and the PATTERNS IN ITS RESULTS (the Context Pack: config_snapshot, feature
+# schema, training_result confusion-matrix / per-class F1 / precision_at_tau / feature-group
+# importance / integrated gradients, mined win/loss/missed OUTCOME PATTERNS, objective-progress
+# distance-to-target, data-capability catalog). The deliverable is the single highest-leverage
+# change to that model.
+
+duties:
+  diagnose_prescribe_quant: |
+    ## Research Director — DIAGNOSE the existing model, then PRESCRIBE the one change (quant lens)
+    The Context Pack above IS the existing model and the measured patterns in its results — study
+    it deeply. This is NOT a blank-slate scoping session; work from THIS model's evidence.
+
+    Produce, from the quant-trading perspective:
+    1. DIAGNOSIS — name the DOMINANT failure mode, anchored to a SPECIFIC result artifact: quote
+       the confusion-matrix cell (e.g. "predicts BIG_UP when truth is FLAT — 41% of FLAT bars"),
+       the per-class F1, the mined outcome-pattern (which market context separates the model's
+       wins from its losses / where it is blind), the session/regime where it loses, or the
+       integrated-gradients finding. No unanchored assertions — cite the exact result.
+    2. PRESCRIPTION — the SINGLE highest-leverage change that will most move the binding objective
+       metric, of ARBITRARY scope: a feature edit, ADDING A NEW CORRELATED SYMBOL (as a tradeable
+       lead-lag mechanism, not a bare correlation), an OVERLAY/GATING MODEL run in conjunction, a
+       loss/penalty change (e.g. a higher penalty on confident wrong-direction calls in flat
+       regimes), a label redesign, a hyperparameter regime, or an ensemble — whatever the evidence
+       demands. Argue the MECHANISM (why it fixes the diagnosed failure), the EXPECTED EFFECT
+       (metric + direction + magnitude), the EVIDENCE tier, and FEASIBILITY.
+    3. If the change is expressible as a TRAINING RUN over this objective's walk-forward folds,
+       specify a concrete `executable_candidate` (catalog `family` + `params` + `features`); if it
+       needs UN-INGESTED data or NEW model code, say so — it will hand off, not auto-validate.
+       `features` MUST be exactly one of:
+         {"view": "<named_view>"} | {"prefixes": ["rv_", "of_", ...]} | {"columns": ["exact_col", ...]}
+       No extra keys (no context_view, note, meta_inputs, meta_context_prefixes). Do not put group
+       prefixes inside `columns`. For nq-50pt-econ primary_meta, the objective already activates the
+       meta gate — use a normal catalog family (e.g. xgboost) + sparse features; do not invent a
+       nested topology object inside params.
+    Use your tools (`read_attribution`, `dataset_catalog`, `db_inventory`, `data_capability_catalog`,
+    `recent_journal`, `research_search`, `search_research`) to ground every claim. Do NOT
+    re-propose an idea the recent journal already marked DISPROVEN. Ask yourself before finishing:
+    is this the HIGHEST-LEVERAGE change, or a local patch while the binding gap is elsewhere?
+    End with a structured markdown draft: DIAGNOSIS → PRESCRIPTION (with the fields above).
+
+  diagnose_prescribe_ml: |
+    ## Research Director — DIAGNOSE the existing model, then PRESCRIBE the one change (ML lens)
+    The Context Pack above IS the existing model and the measured patterns in its results — study
+    it deeply. This is NOT a blank-slate scoping session; work from THIS model's evidence.
+
+    Produce, from the AI/ML data-science perspective:
+    1. DIAGNOSIS — name the DOMINANT failure mode, anchored to a SPECIFIC result artifact: read the
+       confusion matrix to attribute the error to the RIGHT class transition; cite per-class F1,
+       fold variance, calibration/precision_at_tau behaviour, feature-group importance vs
+       integrated-gradients (a high-importance group with near-zero IG on correct calls is a
+       false-signal source), or class-balance/leakage evidence. No unanchored assertions.
+    2. PRESCRIPTION — the SINGLE highest-leverage change of ARBITRARY scope: a feature
+       add/removal, a loss/penalty or class-weight change, a label redesign, an architecture or
+       capacity change, a calibration/abstention layer, an OVERLAY/META model run in conjunction,
+       or an ensemble — whatever the evidence demands. Argue the MECHANISM, the EXPECTED EFFECT
+       (metric + direction + magnitude), the EVIDENCE tier, and FEASIBILITY (leakage-safe,
+       walk-forward-compatible, justified vs effective sample size).
+    3. If expressible as a TRAINING RUN, specify a concrete `executable_candidate` (catalog
+       `family` + `params` + `features`); if it needs un-ingested data or new model code, say so.
+       `features` MUST be exactly one of view | prefixes | columns (no extra keys; no prefixes
+       inside columns). Prefer named views (`momentum_edge`, `regime_core`) when available.
+       Do not invent nested primary_meta topology in params — the objective owns that.
+    Use your tools to ground every claim; skip DISPROVEN journal ideas. Ask before finishing: is
+    this the highest-leverage change, or a local patch? End with a structured markdown draft:
+    DIAGNOSIS → PRESCRIPTION.
+
+  cross_review_quant: |
+    ## Interface review of the ML prescription (your scope: MARKET & TRADEABILITY REALISM only)
+    Review the ML data scientist's diagnosis+prescription ONLY for market/tradeability realism:
+    does the prescribed change survive session/roll structure, regime/vol dependence, execution
+    cost/slippage at the implied signal cadence, and data timeliness? Is an added symbol a
+    genuine tradeable lead-lag or a spurious correlation? Every objection MUST name the
+    interface_assumption it attacks. Do NOT critique modeling methodology (architecture, training,
+    validation design) — out of scope, will be dropped.
+
+  cross_review_ml: |
+    ## Interface review of the quant prescription (your scope: LEARNABILITY & STATISTICAL FEASIBILITY only)
+    Review the quant expert's diagnosis+prescription ONLY for learnability: does the prescribed
+    change introduce leakage or break walk-forward, is the effect statistically powered given the
+    directional class rate and effective sample size, is the failure mode correctly attributed to
+    the class the confusion matrix actually blames, is the executable_candidate trainable on
+    available data? Every objection MUST name the interface_assumption it attacks. Do NOT critique
+    market mechanics or instrument choice — out of scope, will be dropped.
+
+  synthesis: |
+    ## Research Director — SYNTHESIS (judge)
+    You are the Director-judge. The two experts DIAGNOSED the existing model and PRESCRIBED
+    changes; this is the JUDGEMENT step. Merge their final drafts into ONE ModelImprovementPlan
+    JSON. Rules:
+    - `dominant_failure_modes`: the failure modes both lenses converged on, each with tier-tagged
+      evidence anchors quoting the exact result artifact.
+    - `changes`: a RANKED set (rank 1 = highest leverage). Each carries scope,
+      targeted_failure_mode, mechanism, expected_effect (metric+direction+magnitude), tier-tagged
+      evidence, feasibility, cost.
+    - `top_recommendation`: the id of the SINGLE highest-leverage change — the one worth
+      auto-validating first.
+    - Use the IMPLEMENTED MODEL CATALOG block: set `auto_validatable:true` and fill
+      `executable_candidate` (catalog `family` that exists TODAY + params + features) ONLY for
+      changes trainable now over this objective's walk-forward folds. For new-data acquisition or
+      new model code, set `auto_validatable:false` and fill `validation_method`. Do not invent a
+      family that isn't in the catalog for an auto_validatable change.
+    - Weigh disagreements under the trust order T3 (proven-live) > T2 (this model's own results) >
+      T1 (external literature); carry unresolved cross-review objections into open_questions.
+    Output ONLY the ModelImprovementPlan JSON.
+
+  replication: |
+    ## Independent second opinion (synthesis replication)
+    Independently derive a ModelImprovementPlan JSON from the same expert drafts, cross-objections,
+    and the IMPLEMENTED MODEL CATALOG block. You have NOT seen any other synthesis. Apply the same
+    rules: ranked changes, one top_recommendation, tier-tagged evidence, auto_validatable only for
+    catalogued families trainable today. Output ONLY the ModelImprovementPlan JSON.
+
+  reconciliation: |
+    ## Judge reconciliation (primary vs replication)
+    Two independently produced ModelImprovementPlans are below. Reconcile into the FINAL plan:
+    - Where they agree on the dominant failure mode or the top_recommendation, keep it (agreement
+      across independent derivations is the strongest internal signal).
+    - Where they diverge, decide under the trust order T3 > T2 > T1 and by leverage×evidence×
+      feasibility; record each decision in the `reconciliation` field (what diverged, which won, why).
+    Output ONLY the final ModelImprovementPlan JSON.
+
+# Per-field red-flag checklists — injected into the cross-model critic to force DEEPER thinking.
+red_flags:
+  quant_trading:
+    - "Failure mode asserted without a confusion-matrix cell / per-class F1 / outcome-pattern anchor — demand the exact result reference"
+    - "Prescribes an added symbol as a correlation, not a tradeable lead-lag mechanism (and available per the data-capability catalog)"
+    - "Change ignores the session/regime where the model actually loses (per the outcome patterns)"
+    - "Signal-cadence change implies execution cost/slippage the objective KPI math ignores"
+    - "A LOCAL PATCH dressed up as highest-leverage — the binding metric gap per objective-progress is elsewhere; demand the author defend leverage"
+    - "Prescription untethered from the diagnosis (fixes a failure mode the results do not show)"
+    - "executable_candidate targets UNAVAILABLE data/symbols per the data-capability catalog"
+    - "Re-proposes an idea the recent journal already marked DISPROVEN"
+    - "Only recycles obvious/textbook edges the objective already names, with no non-obvious change the author had to research — demand a genuinely new hypothesis"
+  ml_data_scientist:
+    - "Misreads the confusion matrix — attributes the error to the wrong class transition"
+    - "Prescribed loss/label/feature change reintroduces leakage or breaks walk-forward"
+    - "expected_effect has no measurable magnitude, or names a metric not in the training_result (precision_at_tau / test_f1_per_class / directional_f1)"
+    - "Capacity/feature change unjustified vs effective sample size and the directional class rate"
+    - "Ensemble/overlay proposed over members with degenerate OOF (e.g. an all-flat gate as a voter)"
+    - "auto_validatable=true but the executable_candidate.family is not in the catalog, or params are hand-waved"
+    - "A LOCAL PATCH dressed up as highest-leverage — demand the author defend it against the largest per-class gap"
+    - "Diagnosis cites feature-group importance without checking integrated-gradients direction (importance != correct-signal contribution)"
+    - "Re-proposes a DISPROVEN journal idea, or only the obvious/default change anyone would try first — demand novelty grounded in the results"

@@ -1,0 +1,78 @@
+# Minute VWAP crossover for /NQ.
+#
+# Standalone engine (like ORB): owns its session, entries, stops, targets
+# and chop guards. Does not feed the shared book / stack.
+id: vwap_cross
+title: VWAP Crossover (/NQ)
+kind: rule_engine
+engine: vwap_cross
+listed: true
+standalone: true
+stage: 0
+timeframe: 1min
+candle_table: databento.tbbo_1min
+symbol_root: NQ
+description: >
+  Fires a long when a minute candle opens below the session VWAP known at
+  the previous candle's close, closes above the VWAP updated at its own
+  close, is preceded by a green candle, and VWAP slope after the cross is
+  non-negative. Short is the mirror. Entry is filled at the next candle's
+  open; the stop is the crossing candle's opening price, one point past
+  the VWAP line, or whichever is farther (configurable). Profit target is
+  either a fixed point distance or a multiple of the stop range (default
+  40 pts absolute). A per-session VWAP-cross cap and a rolling-window
+  cross cap keep the strategy from re-arming on choppy days that would
+  whipsaw through VWAP.
+params:
+  session_start: "08:30"
+  session_end: "14:45"
+  trade_start: "08:30"
+  trade_end: "14:45"
+  entry_mode: close_confirm
+  entry_ticks: 4
+  trade_long: true
+  trade_short: true
+  use_preceding_bar_color: true
+  use_vwap_slope_filter: true
+  vwap_slope_lookback: 8
+  vwap_slope_direction: backward
+  min_vwap_slope: 0.0
+  use_min_signal_clv: true
+  min_close_range_frac: 0.6
+  use_bar_size_filter: false
+  bar_size_atr_mult: 1.5
+  atr_lookback: 14
+  use_ema_cross_filter: false
+  ema_length: 6
+  ema_cross_length: 3
+  max_session_crosses: 4
+  chop_lookback: 20
+  max_recent_crosses: 2
+  stop_mode: worse_of
+  vwap_stop_offset: 1.0
+  max_stop_pts: 20.0
+  profit_target_mode: absolute
+  profit_target_pts: 40.0
+  profit_target_stop_mult: 2.0
+  vp_va_pct: 0.70
+  vp_fallback_pts: 40.0
+  min_bars_before_ema_pt: 3
+  ema_vwap_shrink_pct: 15.0
+  entry_bar_delay: 0
+  trade_dow_mask: "1111100"
+  long_trade_dow_mask: ""
+  short_trade_dow_mask: ""
+  long_max_session_crosses: 4
+  short_max_session_crosses: 4
+  long_chop_lookback: 20
+  short_chop_lookback: 20
+  long_max_recent_crosses: 2
+  short_max_recent_crosses: 2
+  long_vwap_stop_offset: 1.0
+  short_vwap_stop_offset: 1.0
+  long_max_stop_pts: 20.0
+  short_max_stop_pts: 20.0
+  qty: 1
+  point_value: 20.0
+  cost_per_trade: 0.0
+  slippage_points: 0.0

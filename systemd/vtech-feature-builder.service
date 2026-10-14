@@ -1,0 +1,21 @@
+[Unit]
+Description=VTech Feature Builder Service
+After=postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=oneshot
+User=vtech
+Group=vtech
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+ExecStart=/opt/vtech/venv/bin/python -m src.features.engine --date today
+ExecStartPost=/opt/vtech/venv/bin/python /opt/vtech/scripts/features/build_data_capability.py
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vtech-feature-builder
+# Oneshot; 40% of this host's RAM at boot (ADR-060). 4G was a 32 GB-VM leftover.
+MemoryMax=40%
+
+[Install]
+WantedBy=multi-user.target

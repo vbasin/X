@@ -1,0 +1,15 @@
+[Unit]
+Description=Start VTech live streamer at CME Sunday open (5pm CT)
+Documentation=file:///opt/vtech/systemd/vtech-live-streamer.service
+
+[Timer]
+# CME Globex equity-index open. IANA tz handles CST/CDT.
+OnCalendar=Sun *-*-* 17:00:00 America/Chicago
+# If the VM was down at Sunday 5pm, start when it next boots (Python
+# live_cme_weekend_skip exits 0 if that boot is still the weekend).
+Persistent=true
+AccuracySec=1min
+Unit=vtech-live-streamer.service
+
+[Install]
+WantedBy=timers.target

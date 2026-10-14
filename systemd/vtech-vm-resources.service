@@ -1,0 +1,20 @@
+[Unit]
+Description=VTech write RAM-derived Postgres conf.d from get_vm_config()
+DefaultDependencies=no
+After=local-fs.target
+Before=postgresql.service postgresql@16-main.service vtech-live-streamer.service
+Wants=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=root
+WorkingDirectory=/opt/vtech
+Environment=PYTHONPATH=/opt/vtech
+ExecStart=/opt/vtech/venv/bin/python /opt/vtech/scripts/ops/apply_vm_resource_limits.py --apply-postgres
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vtech-vm-resources
+
+[Install]
+WantedBy=multi-user.target

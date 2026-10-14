@@ -1,0 +1,25 @@
+[Unit]
+Description=VTech Research Director — automated ML research loop (one cycle)
+After=network-online.target postgresql.service vtech-mlflow.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+Environment=PYTHONPATH=/opt/vtech
+Environment=VTECH_DATA_DIR=/opt/vtech/data
+# Budget is enforced by governor (usd_cap_day / usd_cap_week) + rd_loop.cost.usd_cap_session
+# in config/runtime/research_director.yaml ($20 session / $20 day / $80 week defaults).
+ExecStart=/opt/vtech/venv/bin/python -m src.research_director.run
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vtech-research-director
+# One cycle can include GPU validation. Fraction of this host's RAM (ADR-060).
+MemoryMax=30%
+TimeoutStartSec=6h
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+[Unit]
+Description=VTech live paper trading (Databento TBBO + limit/OCO)
+After=network-online.target postgresql.service vtech-live-streamer.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/vtech
+Environment=PYTHONPATH=/opt/vtech
+Environment=VTECH_DATA_DIR=/opt/vtech/data
+EnvironmentFile=-/opt/vtech/.env
+ExecStart=/opt/vtech/venv/bin/python -m src.paper.runner --stream --objective nq-50pt-econ
+Restart=on-failure
+RestartSec=10
+# Paper opens its own Databento Live session (NQ.FUT tbbo) for fill prices.
+# Model signals refresh via FeatureEngine / on-disk features on a timer.
+SyslogIdentifier=vtech-paper
+
+[Install]
+WantedBy=multi-user.target

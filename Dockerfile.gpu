@@ -1,0 +1,20 @@
+FROM tensorflow/tensorflow:2.16.1-gpu
+
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml README.md ./
+COPY src ./src
+COPY scripts ./scripts
+COPY config ./config
+
+RUN pip install --upgrade pip \
+    && pip install -e ".[training,serving]"
+
+
+CMD ["python", "-m", "src.gpu_runner.runner"]

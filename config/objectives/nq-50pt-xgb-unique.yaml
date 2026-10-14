@@ -1,0 +1,123 @@
+# Trade Objective — nq-50pt-xgb-unique
+# XGB-first economics policy (not 3-class sequence DL):
+#   TBM +50 / −6 / 10m, cost 1 pt, calendar walk-forward, train uniqueness
+#   (2-minute stride — overlapping 5s TBM windows are not i.i.d.),
+#   3-class XGB + one-vs-rest XGB on causal champion prefixes (cs_/rv_/vp_/iv_),
+#   primary_meta gate on proposed trades.
+# Data: existing 5s L1 feature parquet only (ADR-041 closed-bar). No MBP-10.
+# No paid Databento pull. Live pin is unchanged (nq-50pt-econ).
+#
+# ACTIVATION (does not change config.yaml pin):
+#   python -m src.search.controller --objective nq-50pt-xgb-unique --no-ensemble
+
+objective_id: "nq-50pt-xgb-unique"
+schema_version: "v2"
+
+description: >
+  Capture TBM +50 / −6 first-touch economics on NQ with a tree policy that
+  respects overlapping 5s labels: 3-class XGBoost and one-vs-rest XGBoost
+  (up vs rest, down vs rest) on causal candle-structure / RV / value-area /
+  IV prefixes (the leak-stripped champion groups), 2-minute train uniqueness,
+  calendar walk-forward, 1 pt round-trip cost, and a meta trade/no-trade gate
+  on proposed trades only. Sequence 3-class softmax is ineligible.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, triple_barrier, meta_label, economics, uniqueness, one_vs_rest]
+
+data_availability:
+  note: >
+    Full order-book depth (MBP-10 / L1–L10) is UNAVAILABLE. Work only from
+    existing L1 TBBO 5s feature parquet. Do not acquire paid Databento schemas.
+  available:
+    - "databento.tbbo (L1 NQ lead-month) + engineered 5s feature parquet"
+    - "Options-derived IV/GEX when already present in parquet (not required)"
+  unavailable:
+    - "MBP-10 / full order-book depth (L1–L10) — not sourced, not acquirable."
+
+horizon:
+  max_trade_horizon: "10m"
+  holding_max: intraday
+
+session:
+  training_start: "08:02"
+  training_end: "14:45"
+  trading_start: "08:30"
+  trading_end: "14:45"
+  timezone: America/Chicago
+
+labels:
+  scheme: triple_barrier
+  move_threshold: 50
+  mae_tolerance: 6
+  unit: points
+
+costs:
+  cost_per_trade: 1.0
+  slippage_model: fixed_1pt
+
+risk_return:
+  min_hit_rate: 0.55
+  min_payoff_ratio: 3.0
+  max_drawdown: -250
+
+kpi:
+  primary: net_expectancy
+  champion_gate: true
+  requirement:
+    all:
+      - {metric: net_expectancy, min: 20.0}
+      - {metric: n_signals, min: 30}
+      - {metric: hit_rate, min: 0.55}
+      - {metric: max_drawdown, min: -400, op: gte}
+      - {metric: precision_at_tau, tau: 0.65, min: 0.55, min_signals: 30}
+  target:
+    all:
+      - {metric: net_expectancy, min: 30.0}
+      - {metric: hit_rate, min: 0.65}
+      - {metric: precision_at_tau, direction: up,   tau: 0.9, min: 0.85, min_signals: 15}
+      - {metric: precision_at_tau, direction: down, tau: 0.9, min: 0.85, min_signals: 15}
+
+eligible_model_families:
+  - xgboost
+  - xgboost_ovr
+
+eval:
+  hold_out: "e68510982d9f"
+  date_range:
+    start: "2025-05-01"
+    end: "2026-06-30"
+  walk_forward_folds: 6
+  walk_forward:
+    mode: expanding_calendar
+    train: {n: 2, unit: months}
+    test: {n: 2, unit: months}
+    purge_bars: 120
+  train_uniqueness_bars: 24
+
+ensemble:
+  max_base: 2
+  methods: [consensus]
+  min_agree: 2
+
+search:
+  tune_trials: 0
+  default_feature_view: tbm_topgroups
+  feature_views:
+    xgboost: tbm_topgroups
+    xgboost_ovr: tbm_topgroups
+    lightgbm: tbm_topgroups
+  topology:
+    mode: primary_meta
+    meta:
+      family: logistic_regression
+      context_view: regime_core
+      approve_threshold: 0.55
+      min_primary_confidence: 0.50
+      n_folds: 5
+      embargo_bars: 120

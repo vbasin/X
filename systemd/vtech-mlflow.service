@@ -1,0 +1,36 @@
+[Unit]
+Description=VTech MLflow Tracking Server
+After=postgresql.service network.target
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+
+# Load secrets (PGPASSWORD, OCI credentials) and app config
+EnvironmentFile=/opt/vtech/.env
+
+# Credentials and S3-compat config are loaded from EnvironmentFile and passed to the
+# wrapper script as shell variables. The wrapper script uses exec so systemd tracks
+# the mlflow PID directly. Required .env keys:
+#   PGUSER, PGPASSWORD, PGHOST, PGPORT
+#   MLFLOW_S3_ENDPOINT_URL=https://example.compat.objectstorage.example
+#   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY  (OCI Customer Secret Keys)
+ExecStart=/opt/vtech/scripts/ops/start_mlflow.sh
+
+# Restart policy — tracking server is non-critical; restart slowly on crash
+Restart=on-failure
+RestartSec=30
+
+StandardOutput=append:/opt/vtech/logs/mlflow.log
+StandardError=append:/opt/vtech/logs/mlflow.err
+
+# MemoryMax is a fraction of this host's RAM at boot (ADR-060). No CPUQuota:
+# CPUQuota=50% is 50% of *one* CPU, not of the VM, and does not track
+# resize. Worker/thread budgets belong in get_vm_config() at process start.
+MemoryMax=4%
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,108 @@
+# Example USER-DEFINED strategy spec — validates against config/strategy_spec.schema.json.
+#
+# This is the third experiment entry path (besides the automated model-selection search and
+# the manual model spec): the user types out an actual trading strategy as feature-value
+# conditions & interactions, and the backtest engine evaluates it bar-by-bar on the 5s
+# feature parquets — scored on the SAME objective KPI contract as ML model candidates, plus
+# full trade economics (PnL, win rate, expectancy, profit factor, drawdown, MAE/MFE).
+#
+#   Run:
+#     python -m src.backtest.runner --spec config/strategy.example.yaml
+#
+#   Override the trade date range from the CLI:
+#     python -m src.backtest.runner --spec config/strategy.example.yaml \
+#         --start 2025-10-01 --end 2026-02-28
+#
+#   Validate without running (checks schema + feature names against the parquets):
+#     python -m src.backtest.runner --spec config/strategy.example.yaml --dry-run
+#
+# Every fired trade is also recorded to the outcome episode store
+# (data/evaluation/episodes/<objective>/) so the Research Director's pattern analysis sees
+# strategy successes/failures exactly like model signals.
+
+schema_version: v1
+strategy_id: vwap_stretch_reversal
+objective_id: nq-50pt
+description: >
+  Mean-reversion: price stretched below VWAP (vw_vwap_dist is a fractional distance, ~[-0.006,
+  0.004]) while volatility is elevated and order-flow delta turns positive (crosses above 0)
+  -> long. Symmetric for shorts. Skip the opening 30 minutes. 50pt target / 15pt stop /
+  10 minute time stop, always flat at close.
+
+# ── Entry rules (feature values & interactions) ─────────────────────────────
+entry:
+  long:
+    all:
+      - {feature: vw_vwap_dist,  op: lte, value: -0.003}   # stretched below VWAP (~5th pct)
+      - {feature: rv_vol_ratio,  op: gt,  value: 1.1}       # vol regime elevated
+      - {feature: of_delta,      op: cross_above, value: 0} # order flow turns net-buy
+  short:
+    all:
+      - {feature: vw_vwap_dist,  op: gte, value: 0.003}
+      - {feature: rv_vol_ratio,  op: gt,  value: 1.1}
+      - {feature: of_delta,      op: cross_below, value: 0}
+
+# ── Global filters (both sides) ─────────────────────────────────────────────
+filters:
+  all:
+    - {feature: tc_block_open_30m, op: eq, value: 0}       # skip the first 30 min
+
+# ── Exits ────────────────────────────────────────────────────────────────────
+exit:
+  target_points: 50
+  stop_points: 15
+  max_holding: 10m          # time stop (5s bars -> 120 bars)
+  eod_flat: true
+
+# ── Backtest window + execution knobs (the date-range interface) ────────────
+backtest:
+  start: 2025-06-02         # inclusive; omit to use the earliest available parquet
+  end: 2026-04-30           # inclusive; omit to use the latest available parquet
+  holdout_start: 2026-02-01 # trades from here on reported separately (out-of-sample)
+  cooldown_bars: 24         # 2 minutes between trades
+  point_value: 1.0          # 1.0 = report PnL in points (20.0 = NQ USD per point)
+  max_trades_per_day: 0     # 0 = unlimited
+
+costs:
+  cost_per_trade: 0.5       # round-trip, points
+  slippage_points: 0.25     # per side, points
+
+# ── Calendar-cadence alternative (instead of `entry`) ────────────────────────
+# Standard daily/weekly/monthly buying + settling rules. Replace the `entry` block
+# above with a `schedule` block like one of these (exactly one of entry|schedule):
+#
+# schedule:                       # buy every day at 09:00, settle at session close
+#   frequency: daily
+#   entry_time: "09:00"
+#   side: long
+#   settle: {mode: eod}
+#
+# schedule:                       # buy Mondays, hold 3 trading days
+#   frequency: weekly
+#   day_of_week: MON
+#   side: long
+#   settle: {mode: hold_days, days: 3}
+#
+# schedule:                       # buy the first trading day of each month, hold to the next
+#   frequency: monthly
+#   day_of_month: first
+#   side: long
+#   settle: {mode: next_entry}
+
+# ── Model-prediction alternative (instead of `entry` / `schedule`) ────────────
+# Replay a TRAINED MODEL's predictions as a real strategy, gated by confidence, one
+# position at a time. Exit target/stop/max_holding default to the objective barriers
+# (move_threshold / mae_tolerance / max_trade_horizon) when omitted. Exactly one of
+# entry|schedule|predictions.
+#
+#   No YAML needed — run straight from the CLI:
+#     python -m src.backtest.runner \
+#       --predictions data/search/nq-50pt-tbm/<run_ts>/oof_xgb_tbm_full.parquet \
+#       --objective nq-50pt-tbm --tau 0.9 --start 2026-05-01 --end 2026-06-02
+#
+# Or as a spec block:
+#
+# predictions:
+#   source: data/search/nq-50pt-tbm/20260711T033354Z/oof_xgb_tbm_full.parquet
+#   tau: 0.9                 # only enter when model confidence >= 0.9
+#   sides: [up, down]        # which predicted directions to trade (default: both)

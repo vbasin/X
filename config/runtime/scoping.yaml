@@ -1,0 +1,75 @@
+# ── Scoping v2 (ADR-025) — dual-perspective, evidence-tiered agentic research loop ──
+#
+# THE scoping-stage config. Consumed by src.scoping.{orchestrator,critic,rag,embeddings}
+# via orchestrator.load_scoping_cfg(). Extracted from research_director.yaml (2026-07-14):
+# the scoping orchestrator is a separate engine from the Research Director panel — it only
+# ever read its own block, so the block now lives in its own file. Secrets stay in .env.
+#
+# Iteration is bounded by convergence + caps, NOT budget (ADR-025: calls are not the
+# constraint). All knobs here are live-wired; env vars noted below override per-run.
+
+fields: [quant_trading, ml_data_scientist]   # the two ADR-013 personas, reused
+
+caps:
+  self_critique: 3          # author self-critique pre-pass iterations (cheap, surface slips)
+  critic_rounds: 4          # parameterized-critic rounds per deliverable (converge on no material objections)
+  synthesis_replications: 1 # ONE full independent second opinion, at the synthesis node only
+  max_tool_iters: 10        # bounded plan→act→observe loop per agent round
+
+providers:
+  # AUTHOR must stay on Anthropic: Pass-A external research runs on Anthropic's native
+  # server-side web_search/web_fetch (SSRF-safe, executed on their infra).
+  author: auto              # auto = llm_factory env resolution → anthropic (claude-opus-4-8)
+  # CRITIC on the OpenAI PLATFORM (cross-LAB decorrelation, ADR-025 §4): GPT-5.6 Terra —
+  # near-frontier reasoning at half Sol's price; upgrade to gpt-5.6-sol if early runs show
+  # missed flaws. Requires OPENAI_API_KEY in .env; falls back to the author (with a warning)
+  # until the key exists. GitHub Models was rejected for this role: hard 8k-in/4k-out
+  # per-request cap cannot carry critic payloads and fails the synthesis replication.
+  critic: openai
+  critic_model: gpt-5.6-terra
+  critic_base_url_env: OPENAI_BASE_URL       # optional; SDK default https://api.openai.com/v1
+  critic_api_key_env: OPENAI_API_KEY
+  critic_reasoning_effort: medium            # GPT-5.x reasoning knob (latency/depth trade-off)
+  critic_web: true                           # hosted web_search (Responses API) for the critic's
+                                             # adversarial counter-evidence searches (ADR-025 §4.3)
+
+embedding:
+  # Embeddings power ONE thing: semantic retrieval over the research corpus (the pgvector
+  # RAG index that backs the `search_research` tool and per-run library indexing). They are
+  # INDEPENDENT of the author/critic chat provider — Anthropic exposes no embeddings
+  # endpoint, so an OpenAI-compatible endpoint serves the vectors regardless of which model
+  # writes the drafts. "GitHub Models needs embeddings" was a misread: no chat model needs
+  # them; only RAG retrieval does.
+  #
+  # Pinned to `openai` (was `auto`): sentence-transformers is not installed here, so `auto`
+  # probed local → failed → fell to OpenAI on every call. Pinning removes the redundant probe
+  # and makes the backend deterministic. Uses the OpenAI PLATFORM key (no request quota) via
+  # text-embedding-3-large. Precedence: VTECH_EMBED_BACKEND env > this key.
+  #   - Offline alternative: `pip install sentence-transformers` and set backend: local.
+  #   - Tests / no-network: backend: hash (deterministic, zero-dependency).
+  # NOTE: changing the backend/model requires a corpus re-index (python -m src.scoping.rag
+  # index) — search_research surfaces a hint if you forget.
+  backend: openai
+  local_model: all-MiniLM-L6-v2
+  hash_dim: 384             # deterministic no-dependency fallback (tests / degraded mode)
+
+rag:
+  chunk_chars: 1200
+  chunk_overlap: 150
+  search_k: 8
+
+cost:
+  usd_cap_session: 30.0     # scoping-session LLM ceiling — high by design
+  per_agent_usd_cap: 10.0
+  # Real $/1k token rates — without these CostMeter charges $0.00 and the caps NEVER trigger.
+  # Sources (2026-07): platform.claude.com/docs pricing — opus-4-8 $5/$25 per MTok,
+  # sonnet-5 $2/$10 (intro through 2026-08-31); developers.openai.com models —
+  # gpt-5.6-terra $2.50/$15, gpt-5.6-sol $5/$30, gpt-5.6-luna $1/$6 per MTok.
+  model_rates:
+    claude-opus-4-8:      { in_per_1k: 0.005,   out_per_1k: 0.025 }
+    claude-sonnet-5:      { in_per_1k: 0.002,   out_per_1k: 0.010 }
+    claude-fable-5:       { in_per_1k: 0.010,   out_per_1k: 0.050 }
+    gpt-5.6-terra:        { in_per_1k: 0.0025,  out_per_1k: 0.015 }
+    gpt-5.6-sol:          { in_per_1k: 0.005,   out_per_1k: 0.030 }
+    gpt-5.6-luna:         { in_per_1k: 0.001,   out_per_1k: 0.006 }
+    openai/gpt-4o-mini:   { in_per_1k: 0.0,     out_per_1k: 0.0 }

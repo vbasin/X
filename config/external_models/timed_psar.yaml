@@ -1,0 +1,29 @@
+# Factory card: Timed PSAR one-shot (ADR-096).
+# Operator-saved defaults live under $VTECH_DATA_DIR/ops/webui/external_models/
+# and overlay these values. This file is the factory reset target.
+id: timed_psar
+title: Timed PSAR
+kind: timed_rule
+engine: timed_psar
+stage: 0
+timeframe: 1min
+candle_table: databento.tbbo_1min
+symbol_root: NQ
+description: >
+  One trade per session. At a Chicago clock time, or N bars after session
+  open, enter in the direction of the last closed 1-hour or 1-day
+  Parabolic SAR (Wilder trail). Direction is snapshotted at the trigger;
+  a later HTF SAR flip does not reverse. Hold until the book's profit
+  target, stop loss, or session flatten. Bar timeframe, ATR length, PT,
+  and SL are Backtest Parameters (PT may be points, × ATR, or × stop).
+  Fills are the trigger bar's close on the book candle timeframe
+  (finest source is databento.tbbo_1min: 1min / 5min / 15min / 1hour /
+  1day). Not a continuous SAR follower.
+params:
+  entry_mode: clock
+  entry_time: "08:30"
+  bars_from_open: 0
+  direction_tf: 1day
+  start: 0.02
+  increment: 0.02
+  maximum: 0.2

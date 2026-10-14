@@ -1,0 +1,94 @@
+# Trade Objective — nq-50pt-path-hazard
+# Honest 1s-path labels (ADR-053) + Encoder A (1s TCN). Encoder B (4-resolution
+# 1s tokenizer) only if this TCN is not enough. No VIX (missing for most years).
+# Live pin unchanged (nq-50pt-econ). Do not promote.
+#
+# ACTIVATION:
+#   python -m src.search.controller --objective nq-50pt-path-hazard --no-ensemble
+
+objective_id: "nq-50pt-path-hazard"
+schema_version: "v2"
+
+description: >
+  Train a 1s-path dilated TCN (dilations 1…512, RF 1024 s) on vol-normalised
+  first-touch labels from parquet_pathlabels. Inputs are ATR-normalised OHLC+volume
+  from parquet_path1s, not the 5s engineered matrix. Hazard + MFE/MAE heads;
+  serving contract remains {ts, direction, confidence}. Path-realised scoring
+  (ADR-052) is the primary judge.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, path_labels, hazard, path_tcn]
+
+data_availability:
+  note: >
+    Encoder reads parquet_path1s (1s OHLC+volume, 2011–2026) and parquet_pathlabels.
+    No VIX (absent for most of the archive). No paid Databento pull. No MBP-10.
+  available:
+    - "parquet_path1s 1s OHLC+volume (07:00–15:15 CT)"
+    - "parquet_pathlabels vol-normalised 1s-path labels (ADR-053)"
+  unavailable:
+    - "VIX / IV for 2011–early 5s coverage — not used"
+    - "MBP-10 / full order-book depth (L1–L10) — not sourced, not acquirable."
+
+horizon:
+  max_trade_horizon: "10m"
+  holding_max: intraday
+
+session:
+  training_start: "08:30"
+  training_end: "11:00"
+  trading_start: "08:30"
+  trading_end: "11:00"
+  timezone: America/Chicago
+
+labels:
+  scheme: path_vol_normalized
+  move_threshold: 50
+  mae_tolerance: 6
+  unit: points
+
+costs:
+  cost_per_trade: 1.0
+  slippage_model: fixed_1pt
+
+kpi:
+  primary: net_expectancy
+  champion_gate: true
+  requirement:
+    all:
+      - {metric: net_expectancy, min: 20.0}
+      - {metric: n_signals, min: 30}
+      - {metric: hit_rate, min: 0.55}
+      - {metric: max_drawdown, min: -400, op: gte}
+  target:
+    all:
+      - {metric: net_expectancy, min: 30.0}
+      - {metric: hit_rate, min: 0.65}
+
+eligible_model_families:
+  - path_tcn
+
+eval:
+  date_range:
+    start: "2018-01-02"
+    end: "2026-06-30"
+  walk_forward_folds: 6
+  walk_forward:
+    mode: expanding_calendar
+    train: {n: 2, unit: months}
+    test: {n: 2, unit: months}
+    purge_seconds: 600
+
+search:
+  tune_trials: 0
+  input: path1s
+  entry_stride: 5
+  usable_only: true
+  topology:
+    mode: single

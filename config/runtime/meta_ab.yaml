@@ -1,0 +1,33 @@
+# Meta-labeling A/B — ACTIVE under objective nq-50pt-econ (ADR-027).
+#
+# Arm A (control)   — single primary candidate (3-class / direction + τ gate).
+# Arm B (treatment) — primary + cross-fitted meta trade/no-trade gate
+#                     (src/search/meta_compose.py via search.topology.mode=primary_meta).
+#
+# Production signal for legacy objectives (nq-50pt, nq-50pt-tbm) remains single-model.
+# The economics objective opts into Arm B automatically in the search controller.
+#
+# Run:
+#   python -m src.search.controller --objective nq-50pt-econ \
+#       --manual-spec config/manual_candidates.nq-50pt-econ.yaml
+# Meta candidates appear as meta__<primary_id> on the same leaderboard / gate.
+
+status: active
+primary_signal: 3class
+arms:
+  control:
+    id: single_3class
+    description: "Primary direction model only (τ confidence gate)."
+  treatment:
+    id: primary_plus_meta
+    description: "Primary direction + cross-fitted XGBoost meta-gate (trade/no-trade)."
+    meta_model:
+      family: xgboost
+      inputs: [primary_confidence, direction, regime_context]
+      labels: src.training.meta_labels.generate_meta_labels
+      composer: src.search.meta_compose.compose_primary_meta
+evaluation:
+  metric: net_expectancy          # economics objective ranks on expectancy
+  secondary: precision_at_tau
+  holdout: frozen (objective eval contract)
+  objective_id: nq-50pt-econ

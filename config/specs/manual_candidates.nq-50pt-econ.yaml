@@ -1,0 +1,51 @@
+# Manual candidates for nq-50pt-econ (ADR-027).
+# Primary: proven TBM feature groups (cs_/rv_/vp_/iv_ topped prior nq-50pt-tbm runs
+# at ~0.64 P@0.8 / ~30 pt expectancy) + sparse momentum_edge A/B.
+# Meta topology is owned by the objective (search.topology), not this file.
+#
+#   env -u GPU_INSTANCE_OCID python -m src.search.controller \
+#     --objective nq-50pt-econ \
+#     --manual-spec config/manual_candidates.nq-50pt-econ.yaml --no-ensemble
+
+objective_id: nq-50pt-econ
+ensembles: false
+
+candidates:
+  # Proven sparse groups from nq-50pt-tbm champion wave (xgb_top5_minus_tc lineage).
+  - id: xgb_tbm_topgroups
+    family: xgboost
+    features:
+      prefixes: [cs_, rv_, vp_, iv_]
+    params:
+      n_estimators: 150
+      max_depth: 4
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      class_balance: sqrt
+      dir_threshold: 0.5
+
+  - id: xgb_econ_momentum
+    family: xgboost
+    features:
+      view: momentum_edge
+    params:
+      n_estimators: 200
+      max_depth: 5
+      learning_rate: 0.05
+      subsample: 0.8
+      colsample_bytree: 0.8
+      class_balance: sqrt
+      dir_threshold: 0.5
+
+  - id: lgb_tbm_topgroups
+    family: lightgbm
+    features:
+      prefixes: [cs_, rv_, vp_, iv_]
+    params:
+      n_estimators: 200
+      max_depth: 4
+      learning_rate: 0.05
+      num_leaves: 31
+      class_balance: sqrt
+      dir_threshold: 0.5

@@ -1,0 +1,70 @@
+# Trade Objective — nq-50pt
+# Backfilled from the legacy config.yaml `program objectives` / `success thresholds` /
+# `labels` / `dataset parameters` blocks (Phase 23 W1). Validates against
+# config/objectives/objective.schema.json. Declarative: it selects the KPI, validation, and
+# eligible model families — it never encodes a model choice.
+
+objective_id: "nq-50pt"
+schema_version: "v2"
+
+description: >
+  Detect intraday +/-50 point NQ futures momentum moves within a 10-minute forward window
+  with 5 point maximum adverse excursion (MAE) against the entry.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, breakout, scalping]
+
+horizon:
+  max_trade_horizon: "10m"          # max forward window in which the qualifying +/-50pt move must occur
+  holding_max: intraday
+
+session:
+  training_start: "08:00"
+  training_end: "14:45"
+  trading_start: "08:30"
+  trading_end: "14:45"
+  timezone: America/Chicago
+
+labels:
+  move_threshold: 50            # minimum absolute move size
+  mae_tolerance: 5             # maximum adverse excursion against entry
+  unit: points
+
+kpi:
+  primary: precision_at_tau
+  champion_gate: true
+
+  # ── requirement: the bar a model/ensemble must clear to be CONSIDERED by the
+  #    champion gate. Passes if ANY of these per-direction precision conditions hold.
+  requirement:
+    any:
+      - {metric: precision_at_tau, direction: up,   tau: 0.8, min: 0.85}
+      - {metric: precision_at_tau, direction: down, tau: 0.8, min: 0.85}
+      - {metric: precision_at_tau, direction: up,   tau: 0.9, min: 0.90}
+      - {metric: precision_at_tau, direction: down, tau: 0.9, min: 0.90}
+
+  # ── target: the goal for the overall model to reach through iterative
+  #    experimentation. Achieved only when ALL hold (both sides precise AND recalled).
+  target:
+    all:
+      - {metric: precision_at_tau, direction: up,   tau: 0.9, min: 0.95}
+      - {metric: precision_at_tau, direction: down, tau: 0.9, min: 0.95}
+      - {metric: recall,           direction: up,   min: 0.5, op: gt}
+      - {metric: recall,           direction: down, min: 0.5, op: gt}
+
+# risk_return + costs: optional. Fill when known:
+#   risk_return: {max_drawdown, min_hit_rate, min_payoff_ratio}
+#   costs: {cost_per_trade, slippage_model}
+# Without them the champion gate selects on KPI (precision_at_tau / dir_f1) only.
+
+eligible_model_families: []      # empty = all catalogued families eligible
+
+eval:
+  hold_out: null                 # pin the frozen forward hold-out (data-version hash) in W2
+  walk_forward_folds: 3
