@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ProvenJournalEntry",
+  "description": "ADR-025 T3 evidence tier — one VALIDATED LIVE-RUN result. The highest-trust memory in the scoping loop (T3 > T2 > T1), so writes are USER-CONFIRMED ONLY: entries are added exclusively through `python -m src.scoping.journal add` with an interactive confirmation prompt. Agents read this journal; they can never write it — that write gate guards against self-reinforcing noise / memory poisoning.",
+  "type": "object",
+  "required": ["objective_id", "mlflow_run_id", "model", "live_period", "realized_metrics", "success_rationale", "user_confirmed_at"],
+  "properties": {
+    "objective_id": {"type": "string", "minLength": 1},
+    "mlflow_run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "MLflow run id of the finalized model the live result validates — the lineage anchor."
+    },
+    "model": {
+      "type": "object",
+      "required": ["family"],
+      "properties": {
+        "family": {"type": "string", "minLength": 1},
+        "candidate_id": {"type": "string"},
+        "params": {"type": "object", "additionalProperties": true},
+        "features": {"type": "object", "additionalProperties": true}
+      },
+      "additionalProperties": false
+    },
+    "live_period": {
+      "type": "object",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {"type": "string", "description": "ISO date the live evaluation window started."},
+        "end": {"type": "string", "description": "ISO date the live evaluation window ended."}
+      },
+      "additionalProperties": false
+    },
+    "realized_metrics": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Realized out-of-sample/live metrics, e.g. {precision_at_tau: 0.86, n_signals: 41, pnl_points: 310}.",
+      "additionalProperties": {"type": ["number", "string", "boolean"]}
+    },
+    "success_rationale": {
+      "type": "string",
+      "minLength": 1,
+      "description": "WHY this model is a proven success — the criteria met and why the result is expected to generalize. Load-bearing for scoping Pass B: it lets a later scoping run reuse the proven result as authoritative evidence without re-deriving it, and flags when the success may NOT transfer (e.g. it was proven under different objective requirements)."
+    },
+    "_match": {"type": "string", "description": "Set by load_proven_evidence at read time ('exact' | 'base'); never written to the journal."},
+    "notes": {"type": "string"},
+    "added_by": {"type": "string", "description": "Operator identity (defaults to $USER)."},
+    "user_confirmed_at": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ISO-8601 UTC timestamp of the interactive confirmation. Set by the journal CLI at the moment the operator answers 'y' — its presence is the write-gate receipt."
+    }
+  },
+  "additionalProperties": false
+}

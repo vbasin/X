@@ -1,0 +1,30 @@
+[Unit]
+Description=VTech MBO incremental pull + resting-order book maintenance (one-shot)
+Documentation=file:///opt/vtech/scripts/ops/mbo_incremental_pull.py
+After=network-online.target postgresql.service opt-vtech-data.mount
+Wants=network-online.target postgresql.service opt-vtech-data.mount
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+Environment=PYTHONPATH=/opt/vtech
+# Append-only: cost-gated at $0.00, appends new MBO rows (never deletes from databento.mbo),
+# and incrementally maintains databento.mbo_resting_orders / _snapshot in the same transaction.
+# Refuses to run below 15 GB free on /opt/vtech/data. See ADR-147.
+ExecStart=/opt/vtech/venv/bin/python /opt/vtech/scripts/ops/mbo_incremental_pull.py
+TimeoutStartSec=25min
+Nice=10
+StandardOutput=append:/opt/vtech/logs/mbo-incremental.log
+StandardError=append:/opt/vtech/logs/mbo-incremental.err
+
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/vtech/data /opt/vtech/logs
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

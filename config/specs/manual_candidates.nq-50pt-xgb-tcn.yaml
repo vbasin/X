@@ -1,0 +1,10 @@
+schema_version: v1
+objective_id: nq-50pt-xgb-tcn
+ensembles: false
+candidates:
+  - id: xgboost
+    family: xgboost
+    features: {view: momentum_edge}
+  - id: tcn
+    family: tcn
+    features: {view: momentum_edge}

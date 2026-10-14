@@ -1,0 +1,33 @@
+# vtech-gpu-health-monitor.service — CPU-side GPU health watchdog (ADR-022 companion)
+#
+# Deploy ON THE CPU VM (vm1), not the GPU:
+#   sudo cp systemd/vtech-gpu-health-monitor.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now vtech-gpu-health-monitor
+#
+# Whenever the GPU VM is RUNNING it SSHes in on an interval and inspects the live runner/GPU/disk
+# state, catching failures the OCI Queue results poll cannot see (runner crash/OOM-kill, hung
+# subprocess, CUDA fault, full disk, runner down while the VM still bills). Anomalies are logged at
+# ERROR and appended to $VTECH_DATA_DIR/gpu_health/alerts.jsonl. Needs ~/.oci/config (to resolve the
+# GPU's live public IP) and the SSH key at $GPU_SSH_KEY_PATH (default ~/.ssh/gpu_vm_key).
+
+[Unit]
+Description=VTech GPU health watchdog (SSH-based, ADR-022 companion)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+Environment=PATH=/home/ubuntu/bin:/usr/local/bin:/usr/bin:/bin
+Environment=GPU_HEALTH_INTERVAL_S=45
+ExecStart=/opt/vtech/venv/bin/python -m src.gpu_runner.health_monitor --daemon
+Restart=always
+RestartSec=20
+StandardOutput=append:/opt/vtech/logs/gpu-health-monitor.log
+StandardError=append:/opt/vtech/logs/gpu-health-monitor.err
+
+[Install]
+WantedBy=multi-user.target

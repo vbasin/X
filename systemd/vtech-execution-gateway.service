@@ -1,0 +1,23 @@
+[Unit]
+Description=VTech risk-aware NinjaTrader execution gateway
+After=network-online.target vtech-webui.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/vtech
+Environment=PYTHONPATH=/opt/vtech
+Environment=VTECH_DATA_DIR=/opt/vtech/data
+EnvironmentFile=-/opt/vtech/.env
+ExecStart=/opt/vtech/venv/bin/python -m src.execution.gateway
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/vtech/data /mnt
+SyslogIdentifier=vtech-execution-gateway
+
+[Install]
+WantedBy=multi-user.target

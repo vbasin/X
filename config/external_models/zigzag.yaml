@@ -1,0 +1,31 @@
+# Factory card: Thinkorswim ZigZagHighLow (ADR-063).
+# Operator-saved defaults live under $VTECH_DATA_DIR/ops/webui/external_models/
+# and overlay these values. This file is the factory reset target.
+id: zigzag
+title: ZigZag High/Low
+kind: thinkscript_replica
+engine: zigzag
+stage: 0
+timeframe: 1min
+candle_table: databento.tbbo_1min
+symbol_root: NQ
+thinkscript_study: ZigZagHighLow
+description: >
+  Thinkorswim ZigZagHighLow on closed candles from databento.tbbo_1min
+  (lead-month NQ). Long while the causal zigzag state is uptrend, short
+  while it is downtrend, flat during the opening undefined bars. A
+  reversal is percentage of the swing extreme plus optional Wilder ATR
+  (TrueRange) and/or an absolute / tick floor — TOS defaults are 2.5%
+  + 1×ATR(5), which is hundreds of NQ points on a 1-minute chart; set
+  percentage to 0 to reverse on ATR and/or absolute points only. The
+  Backtest Chart paints a green up-arrow on every uptrend bar and a red
+  down-arrow on every downtrend bar, plus the confirmed ZZ pivot line.
+  Session, ATR gate, profit target / stop loss, sides, and costs are
+  Backtest Parameters on the Backtest tab (EXT Model).
+params:
+  percentage_reversal: 2.5
+  absolute_reversal: 0.0
+  atr_length: 5
+  atr_reversal: 1.0
+  tick_reversal: 0
+  tick_size: 0.25

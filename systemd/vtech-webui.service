@@ -1,0 +1,47 @@
+[Unit]
+Description=VTech Web Console — objectives, scoping, optimization schedule, jobs, results
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+
+# Secrets (.env) are loaded here so console-launched jobs (scoping orchestrator,
+# search controller, research-director cycles) inherit API keys and DB credentials.
+EnvironmentFile=/opt/vtech/.env
+Environment=PYTHONPATH=/opt/vtech
+
+ExecStart=/opt/vtech/venv/bin/python -m src.webui.app --host 127.0.0.1 --port 8700
+
+# KillMode=process: on console restart only uvicorn dies — long-running workflow
+# subprocesses keep going (they own their log fds) and the JobManager reattaches
+# to them by pid + /proc starttime on startup.
+KillMode=process
+
+Restart=on-failure
+RestartSec=10
+
+StandardOutput=append:/opt/vtech/logs/webui.log
+StandardError=append:/opt/vtech/logs/webui.err
+
+# KillMode=process keeps console-launched jobs in this cgroup. Cap is a
+# fraction of *this host's* RAM at boot (ADR-060), not 24G from a prior shape.
+# Raised from 20% to 35% on 2026-09-29: the live_snapshot_worker's daily
+# feature build (tbbo/bbo_1s + the full feature-engine module set, the same
+# kind of work vtech-live-features/-feature-builder do at 30%/40%) was
+# measured OOM-killing at a consistent ~9.8 GB anon-rss (dmesg), every single
+# cold start, against the 20% (~9.4 GB) cap on this 46 GB host -- a clean
+# cap-vs-actual-need mismatch, not a leak (the figure barely varied across
+# six separate kills). 35% (~16 GB) gives real headroom above that measured
+# peak while leaving well over 30 GB free for everything else on the host.
+MemoryMax=35%
+# The live-snapshot child is the process that grows. The default OOM policy
+# stops the whole unit when the kernel kills that child, which drops in-flight
+# chart requests (the browser reports "Failed to fetch"). Keep the API up.
+OOMPolicy=continue
+
+[Install]
+WantedBy=multi-user.target

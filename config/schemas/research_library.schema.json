@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ScoredResearchLibrary",
+  "description": "Phase 23 / Stage 0 output of the Strategy Research Agent (Duty 2). A versioned, objective-trait-keyed bibliography of >=10 reputable publications, each scored on relevance/complexity/reliability/insightfulness, with extracted novel data/feature ideas. Extends the research_cases/papers/ corpus and feeds the Data Requirements Spec. Read-only research only.",
+  "type": "object",
+  "required": ["objective_id", "traits", "publications"],
+  "properties": {
+    "objective_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of the Trade Objective this library was gathered for."
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp when the library was produced."
+    },
+    "traits": {
+      "type": "object",
+      "description": "Objective traits used to key this library for warm-start reuse on similar future objectives.",
+      "required": ["asset_class", "strategy_type", "horizon_bucket"],
+      "properties": {
+        "asset_class": {"type": "string"},
+        "strategy_type": {"type": "string"},
+        "horizon_bucket": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "publications": {
+      "type": "array",
+      "minItems": 10,
+      "description": "At least 10 scored publications. A smaller set is a failed run.",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "source_type", "scores"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "description": "Stable ID (e.g. arXiv id, DOI, or slug)."},
+          "title": {"type": "string", "minLength": 1},
+          "authors": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Author list where available."
+          },
+          "year": {"type": "integer", "description": "Publication year."},
+          "source_type": {
+            "type": "string",
+            "enum": [
+              "academic",
+              "quant_industry",
+              "finance_industry",
+              "educational",
+              "vendor_whitepaper",
+              "other"
+            ],
+            "description": "Reputable-source class the publication belongs to."
+          },
+          "url": {"type": "string", "description": "Canonical URL of the publication (read-only reference)."},
+          "local_file": {
+            "type": "string",
+            "description": "Optional path into research_cases/papers/ if a local summary was written."
+          },
+          "scores": {
+            "type": "object",
+            "required": ["relevance", "complexity", "reliability", "insightfulness"],
+            "description": "Four-axis 0-5 integer scores.",
+            "properties": {
+              "relevance": {"type": "integer", "minimum": 0, "maximum": 5, "description": "Applicability to this product + strategy + horizon."},
+              "complexity": {"type": "integer", "minimum": 0, "maximum": 5, "description": "Implementation / compute burden implied."},
+              "reliability": {"type": "integer", "minimum": 0, "maximum": 5, "description": "Source credibility."},
+              "insightfulness": {"type": "integer", "minimum": 0, "maximum": 5, "description": "Degree to which it surfaces a novel data/feature type that could add edge."}
+            },
+            "additionalProperties": false
+          },
+          "summary": {"type": "string", "description": "Concise extracted findings relevant to the objective."},
+          "data_feature_ideas": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Novel data or feature types proposed by this publication; high-insight items fold back into the Data Requirements Spec."
+          },
+          "notes": {"type": "string", "description": "Free-form agent notes accumulated across objectives (append-mode library, ADR-025)."},
+          "origin": {"type": "string", "description": "How the entry arrived: pass_a | write_back | legacy (ADR-025 corpus write-back provenance)."},
+          "added_at": {"type": "string", "description": "ISO-8601 UTC timestamp the entry was appended to the cumulative library."},
+          "indexed": {"type": "boolean", "description": "True once the entry has been chunked+embedded into the scoping RAG index (scoping.research_chunks)."}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

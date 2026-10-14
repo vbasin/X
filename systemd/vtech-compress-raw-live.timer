@@ -1,0 +1,21 @@
+[Unit]
+Description=VTech raw/live .dbn daily compression timer (01:00 America/Chicago)
+Documentation=file:///opt/vtech/scripts/ops/compress_raw_live.sh
+
+[Timer]
+# Daily at 01:00 America/Chicago (auto-handles CST/CDT via IANA tz).
+# In CST (UTC-6) that maps to 07:00 UTC; in CDT (UTC-5) to 06:00 UTC.
+# At either time the current UTC calendar date matches the current CST/CDT
+# calendar date, so the script's TODAY_UTC directory skip still guards
+# any file that today's live streamer is writing to.
+#
+# The script also excludes any file modified within the last 30 min,
+# which catches the edge case of a streamer that started before UTC-midnight
+# and is still appending to a file in yesterday's UTC folder.
+OnCalendar=*-*-* 01:00:00 America/Chicago
+Persistent=true
+AccuracySec=1min
+Unit=vtech-compress-raw-live.service
+
+[Install]
+WantedBy=timers.target

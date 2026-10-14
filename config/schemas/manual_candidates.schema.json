@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ManualCandidatesSpec",
+  "description": "USER-OVERRIDE candidate set for the search controller. Bypasses the automated Model-Scout / catalog candidate proposal: the user names the exact model families to fit, their per-candidate hyperparameters, and their per-candidate feature selection. Labels, KPI, targets and the walk-forward/eval contract still come from the referenced Trade Objective — this spec only replaces the WHICH-model(s) decision, never the WHAT-counts-as-success decision.",
+  "type": "object",
+  "required": ["candidates"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Manual-spec schema generation, e.g. 'v1'."
+    },
+    "objective_id": {
+      "type": "string",
+      "description": "Optional cross-check. If present it MUST equal the objective_id the search runs against, or the loader raises — guards against pairing a spec with the wrong objective."
+    },
+    "ensembles": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether to still run the Stage-2 ensemble layer over the manual candidates' cached OOF. Default false: manual mode fits exactly the models the user listed and nothing more. Overridden by the controller's own ensembles flag when explicitly set."
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The exact models to build/fit/score. Order is preserved; each is evaluated independently on the objective's walk-forward folds.",
+      "items": {"$ref": "#/$defs/candidate"}
+    }
+  },
+  "$defs": {
+    "candidate": {
+      "type": "object",
+      "required": ["family"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique candidate id — used for leaderboard rows and OOF/diagnostics filenames. Defaults to `family`. MUST be unique across candidates; set it explicitly when several candidates share one family (e.g. two XGBoost configs)."
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Registered plugin/catalog family to build the model with, e.g. 'xgboost', 'lightgbm', 'attention_lstm'. Must exist in src/models/catalog.py."
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Hyperparameter overrides merged over the family's catalog params_default. Keys are family-specific (see the family's plugin / catalog params_default)."
+        },
+        "features": {"$ref": "#/$defs/feature_selection"},
+        "max_rows": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "Training-fold row cap (reproducible subsample, seed 42). null / omitted = use ALL rows. Manual mode defaults to the full matrix (no search cap) since the user is deliberately fitting these models, not sweeping them."
+        },
+        "search_space": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {"type": "string", "enum": ["int", "float", "categorical"]},
+              "low": {"type": "number"},
+              "high": {"type": "number"},
+              "step": {"type": "number"},
+              "log": {"type": "boolean"},
+              "choices": {"type": "array"}
+            },
+            "additionalProperties": true
+          },
+          "description": "Optional Optuna space for this candidate (ADR-040). Omitted / empty = no auto-tuning (ADR-019 default). Custom Test emits a subset of the family's catalog search_space when the slot enables HPO."
+        }
+      }
+    },
+    "feature_selection": {
+      "type": "object",
+      "description": "Explicit feature pick for this candidate. Exactly ONE of view / prefixes / columns. Omitted = the full feature matrix.",
+      "oneOf": [
+        {
+          "required": ["view"],
+          "additionalProperties": false,
+          "properties": {
+            "view": {"type": "string", "description": "A named curated view from src/models/feature_views.py (e.g. 'regime_core', 'sequence_baseline', 'microstructure')."}
+          }
+        },
+        {
+          "required": ["prefixes"],
+          "additionalProperties": false,
+          "properties": {
+            "prefixes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string"},
+              "description": "Keep every feature column whose name starts with any of these prefixes, e.g. ['vw_', 'rv_', 'dc_']."
+            }
+          }
+        },
+        {
+          "required": ["columns"],
+          "additionalProperties": false,
+          "properties": {
+            "columns": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string"},
+              "description": "Keep exactly these feature columns (exact-name match)."
+            }
+          }
+        }
+      ]
+    }
+  }
+}

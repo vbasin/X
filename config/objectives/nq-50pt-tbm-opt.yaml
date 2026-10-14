@@ -1,0 +1,70 @@
+# Trade Objective — nq-50pt-tbm-opt
+# Same TBM 50/6/10m barriers as nq-50pt-econ, plus an opt-in 3-class train
+# loss (ADR-072): when custom_optimization is true, 3-class Keras / XGBoost /
+# LightGBM heads minimize expected cost from cost_matrix instead of CE.
+# Serving and the champion gate are unchanged.
+#
+# ACTIVATION: pass --objective nq-50pt-tbm-opt (or pin objective_id in config.yaml).
+# Live pin is unchanged (nq-50pt-econ).
+
+objective_id: "nq-50pt-tbm-opt"
+schema_version: "v2"
+
+description: >
+  Capture asymmetric TBM economics on NQ: +50 pt first-touch profit barrier vs
+  -6 pt stop within 10 minutes. Train-time 3x3 expected-cost loss rewards a
+  correct up/down much more than a correct flat, charges a medium miss for
+  sitting in flat, and charges the same large penalty for any wrong fire.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, triple_barrier, cost_matrix, economics]
+
+horizon:
+  max_trade_horizon: "10m"
+  holding_max: intraday
+
+session:
+  training_start: "08:00"
+  training_end: "15:00"
+  trading_start: "08:30"
+  trading_end: "14:45"
+  timezone: America/Chicago
+
+labels:
+  scheme: triple_barrier
+  move_threshold: 50
+  mae_tolerance: 6
+  unit: points
+
+# Train-time pay table (ADR-072). Honored only when custom_optimization is true
+# (Keras / XGB / LGBM expected-cost). false = sparse CE + class_balance (ADR-044).
+# Row = true class, column = predicted class. Lower is better.
+#
+#   correct up/down : 0     sit on true dir : 50     wrong-side : 56
+#   fire on true flat : 6   correct flat : 0
+custom_optimization: false
+cost_matrix:
+  labels: [down, flat, up]
+  costs:
+    down: {down: 0.0, flat: 50.0, up: 56.0}
+    flat: {down: 6.0, flat: 0.0, up: 6.0}
+    up:   {down: 56.0, flat: 50.0, up: 0.0}
+
+kpi:
+  primary: directional_f1
+  # Champion gate (search / HPO / scoping). Custom Test never applies it (ADR-071).
+  requirement:
+    all:
+      - {metric: directional_f1, min: 0.3}
+  target:
+    all:
+      - {metric: net_expectancy, min: 30.0}
+# Families that honor cost_matrix (3-class Keras + XGB/LGBM). sklearn RF/LR/SVM
+# cannot take a 3x3 train obj and are omitted so they cannot silently train on CE.
+

@@ -1,0 +1,37 @@
+[Unit]
+Description=VTech Live Features — always-on warm per-bar feature append + score
+After=network-online.target postgresql.service vtech-live-streamer.service
+Wants=network-online.target postgresql.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+# Primary-filtered options BBO on incremental/warm path (engine also forces this).
+Environment=VTECH_BBO_PRIMARY_ONLY=1
+ExecStart=/opt/vtech/venv/bin/python -m src.features.live_runtime
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vtech-live-features
+# Fraction of this host's RAM at boot (ADR-060). Was a hardcoded 32G from
+# a larger VM shape — on an 8–47 GB resize that cap is above physical RAM
+# and does not prevent global OOM.
+# Raised from 30% to 40% on 2026-09-29: dmesg showed this service being
+# OOM-killed at a consistent ~14.3-14.6 GB anon-rss against the 30% (~14.08 GB)
+# cap on this 46 GB host -- repeatedly since 2026-09-28 (at least 9 kills over
+# several hours), still recurring today. Its stale heartbeat from each kill is
+# also why vtech-webui falls back to its own (now-separately-fixed) rebuild
+# instead of adopting this service's cache -- see ADR reference in CHANGELOG,
+# 2026-09-29 entry. 40% (~18.4 GB) matches vtech-feature-builder/-trainer's
+# existing cap for the same class of workload and gives real headroom above
+# the measured peak.
+MemoryMax=40%
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target

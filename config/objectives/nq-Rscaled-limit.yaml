@@ -1,0 +1,55 @@
+# R-scaled NQ with a resting limit entry. Same stop and horizon as
+# nq-Rscaled-mkt. An order that never fills emits no row.
+
+objective_id: "nq-Rscaled-limit"
+schema_version: "v2"
+
+description: >
+  Same R-scaled NQ problem as nq-Rscaled-mkt, except entry is a limit order
+  resting at the far edge of the containing bound. A decision that does not
+  fill emits no row. Target at least 0.25 R, adaptive stop
+  min(0.5 x target, 0.25 R), 30-minute horizon, print-tape observation.
+  R is the median of the prior 5 completed sessions.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+
+directions: [long, short]
+
+economic_intent: positive_selective_net_expectancy_after_costs
+
+horizon:
+  max_trade_horizon: "30m"
+  holding_max: intraday
+
+session:
+  trading_start: "08:30"
+  trading_end: "14:45"
+  flatten: "15:00"
+  timezone: America/Chicago
+  decision_grid_seconds: 5
+
+labels:
+  scheme: first_passage_r
+  target_observation: print_tape
+  entry: limit
+  unit: R
+  unit_definition:
+    source: prior_session_median
+    lookback_sessions: 5
+    excludes_current_session: true
+    per_session_metric: median_print_block_range
+    per_session_block_seconds: 300
+  move_threshold: 0.25
+  stop_rule:
+    ratio_to_target: 0.5
+    max: 0.25
+
+kpi:
+  primary: net_expectancy
+
+costs:
+  execution_cost_profile: MNQ_equivalent

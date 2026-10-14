@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ScopingPlan",
+  "description": "ADR-025 Scoping v2 synthesis output — the proposed OPTIMAL STARTING POINT for an objective: model families/combos and the data they require, every choice carrying tier-tagged evidence citations (T3 proven-live > T2 internal experimental > T1 external). This plan is a hypothesis set for the search controller, never a verdict: the deterministic gap check (Pass C) and the full-fidelity search remain the arbiters, and a human gates any data acquisition.",
+  "type": "object",
+  "required": ["objective_id", "generated_at", "model_plan", "data_requirements"],
+  "properties": {
+    "objective_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "description": "ISO-8601 UTC timestamp."},
+    "run_ts": {"type": "string", "description": "Scoping session run_ts this plan belongs to."},
+    "traits": {
+      "type": "object",
+      "description": "Objective traits (asset_class / strategy_type / horizon_bucket) for warm-start keying.",
+      "additionalProperties": true
+    },
+    "kpi_sanity": {
+      "type": "object",
+      "description": "Sanity check of the objective's KPI/requirement/target against the evidence: is the bar plausibly reachable, and what is the binding constraint?",
+      "properties": {
+        "assessment": {"type": "string"},
+        "binding_constraint": {"type": "string", "description": "e.g. 'recall — precision is bought by abstention'"},
+        "risks": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+    "model_plan": {
+      "type": "object",
+      "required": ["candidates"],
+      "properties": {
+        "candidates": {
+          "type": "array",
+          "description": "Proposed base models. Empty only in degraded/dry runs — the gap check flags an empty plan.",
+          "items": {"$ref": "#/$defs/model_candidate"}
+        },
+        "ensembles": {
+          "type": "array",
+          "description": "Proposed cross-model combinations over the base candidates' OOF.",
+          "items": {"$ref": "#/$defs/ensemble_candidate"}
+        }
+      },
+      "additionalProperties": false
+    },
+    "data_requirements": {
+      "type": "object",
+      "required": ["data_classes"],
+      "description": "Per-plan data scope. data_classes items use the DataRequirementsSpec shape (config/data_requirements.schema.json) so the deterministic gap check consumes them directly.",
+      "properties": {
+        "data_classes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "category", "required", "rationale"],
+            "properties": {
+              "name": {"type": "string", "minLength": 1},
+              "category": {
+                "type": "string",
+                "enum": ["primary_microstructure", "aggregated_price", "related_cross_asset",
+                         "derivatives_positioning", "macro_government", "other"]
+              },
+              "required": {"type": "boolean"},
+              "significance": {"type": "string"},
+              "granularity": {"type": "string"},
+              "history_depth": {"type": "string"},
+              "instruments": {"type": "array", "items": {"type": "string"}},
+              "fields": {"type": "array", "items": {"type": "string"}},
+              "rationale": {"type": "string", "minLength": 1},
+              "source_refs": {"type": "array", "items": {"type": "string"}},
+              "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence_ref"}},
+              "acquisition": {"type": "object", "additionalProperties": true}
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "open_questions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Unresolved items surfaced for the human gate."
+    },
+    "reconciliation": {
+      "type": ["string", "null"],
+      "description": "Judge's note reconciling the primary synthesis with the independent replication (ADR-025 §4.6)."
+    },
+    "provenance": {
+      "type": "object",
+      "description": "How this plan was produced (models, rounds, objection counts).",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "validation_flag": {
+      "type": "object",
+      "required": ["check"],
+      "description": "The disciplined alternative to hedging: a COMMITTED choice that carries an explicit test which would confirm or withdraw it (attach these instead of downgrading the whole choice to provisional).",
+      "properties": {
+        "check": {"type": "string", "minLength": 1,
+                   "description": "The specific test that confirms or kills this committed choice, e.g. 'confirm >=300 minority samples/fold before enabling focal loss'."},
+        "withdraw_if": {"type": "string", "description": "Condition under which the choice is dropped."},
+        "status": {"type": "string", "enum": ["open", "assumed_ok"], "default": "open"}
+      },
+      "additionalProperties": false
+    },
+    "evidence_ref": {
+      "type": "object",
+      "required": ["tier", "source_ref"],
+      "properties": {
+        "tier": {
+          "type": "string",
+          "enum": ["T1", "T2", "T3"],
+          "description": "Trust tier: T3 proven-live > T2 internal experimental > T1 external research."
+        },
+        "source_ref": {"type": "string", "minLength": 1,
+                        "description": "Publication id / results_index key / mlflow_run_id / journal entry ref."},
+        "note": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "model_candidate": {
+      "type": "object",
+      "required": ["family", "role", "rationale", "evidence"],
+      "properties": {
+        "id": {"type": "string", "description": "Unique candidate id; defaults to family."},
+        "family": {"type": "string", "minLength": 1,
+                    "description": "Model family — SHOULD exist in src/models/catalog.py; Pass C flags unknown families."},
+        "role": {"type": "string", "enum": ["primary", "gate", "meta", "member"],
+                  "description": "primary = signal source; gate = regime/veto filter; meta = stacker; member = ensemble-only."},
+        "commitment": {"type": "string", "enum": ["committed", "exploratory"], "default": "committed",
+                        "description": "committed = a decided starting-point choice; exploratory = an explicitly to-validate branch. A plan where EVERY candidate is exploratory is over-hedged (critic red flag over_hedging)."},
+        "validation_flags": {"type": "array", "items": {"$ref": "#/$defs/validation_flag"},
+                              "description": "Explicit checks that confirm/kill this committed candidate — the disciplined alternative to marking the whole choice provisional."},
+        "params_hint": {"type": "object", "additionalProperties": true,
+                         "description": "REQUIRED for a committed candidate: starting values AND search ranges for the load-bearing hyperparameters (capacity/depth, regularization, LR, class-weighting/sampling, sequence length, calibration), grounded in cited prior assessments/research. The search still tunes within these."},
+        "features": {
+          "type": "object",
+          "description": "Feature-selection hint: one of view / prefixes / columns (manual_candidates shape), plus the timeframe(s) the features are computed at.",
+          "properties": {
+            "view": {"type": "string"},
+            "prefixes": {"type": "array", "items": {"type": "string"}},
+            "columns": {"type": "array", "items": {"type": "string"}},
+            "timeframe": {"type": "string",
+                           "description": "Bar/sampling timeframe these features are computed at (e.g. '1s','5s','1m','5m')."},
+            "by_group": {"type": "object", "additionalProperties": {"type": "string"},
+                          "description": "Per-feature-group timeframe override for multi-resolution inputs, e.g. {'orderflow':'1s','macro':'1d'}."}
+          },
+          "additionalProperties": false
+        },
+        "rationale": {"type": "string", "minLength": 1},
+        "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence_ref"}}
+      },
+      "additionalProperties": false
+    },
+    "ensemble_candidate": {
+      "type": "object",
+      "required": ["kind", "members", "rationale"],
+      "properties": {
+        "kind": {"type": "string",
+                  "description": "Combination method, e.g. consensus | vote | stacking | gate_agree | gate_veto."},
+        "members": {"type": "array", "minItems": 2, "items": {"type": "string"},
+                     "description": "Candidate ids being combined."},
+        "rationale": {"type": "string", "minLength": 1},
+        "evidence": {"type": "array", "items": {"$ref": "#/$defs/evidence_ref"}}
+      },
+      "additionalProperties": false
+    }
+  }
+}

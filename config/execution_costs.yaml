@@ -1,0 +1,33 @@
+# Execution-cost assumptions for src/evaluation/economic.py
+# (loaded by economic.load_assumptions). portfolio_sim and Track C's
+# persisted book in eval_target_model.py consume these profiles.
+# src/canonical/ does not exist.
+#
+# commission_per_trade: ONE combined all-in figure (broker + exchange +
+#   clearing + other fees) in dollars, per COMPLETED round trip, per unit
+#   quantity. Not split into categories.
+# slippage_points_per_side: adverse movement BEYOND the executable bid/ask,
+#   applied to MARKET and STOP legs only (never LIMIT). Spread is NOT
+#   slippage -- pricing at bid/ask already captures it. Currently 0; latency
+#   slippage is not estimated.
+# underlying: the market data / prices trades are computed from.
+#
+# Each profile's commission is an INDEPENDENT assumption. MNQ_equivalent's
+# $1.03 is NOT derived as 0.1 x $3.36 -- only its multiplier is derived.
+
+profiles:
+  NQ:
+    underlying: NQ
+    contract_multiplier: 20.0
+    commission_per_trade: 3.36
+    slippage_points_per_side: 0.0
+
+  # Track C: prices off NQ data; sizes MNQ-equivalent exposure only when
+  # selected. "MNQ-equivalent" does not imply MNQ market data, nor that an
+  # MNQ contract is actually bought.
+  MNQ_equivalent:
+    underlying: NQ
+    exposure_relative_to: NQ
+    exposure_ratio_to_underlying: 0.1   # multiplier = 0.1 x NQ = 2.0
+    commission_per_trade: 1.03          # explicit, independent assumption
+    slippage_points_per_side: 0.0

@@ -1,0 +1,32 @@
+# RETIRED 2026-09-29 (ADR-146) — see vtech-mbo-daily.timer's header comment.
+[Unit]
+Description=VTech daily Databento MBO catch-up (cost-gated pull + ingest, one-shot) — RETIRED
+Documentation=file:///opt/vtech/scripts/ops/daily_mbo_pull.py
+After=network-online.target postgresql.service opt-vtech-data.mount
+Wants=network-online.target postgresql.service opt-vtech-data.mount
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+Environment=PYTHONPATH=/opt/vtech
+# Pulls only days the feed fully covers, aborts on any non-$0.00 cost, refuses to start below
+# 15 GB free on /opt/vtech/data, verifies row counts against Databento. Exit 1 = pull/verify
+# failed, 2 = refused (disk / concurrent run). The free MBO window is ~1 month rolling.
+ExecStart=/opt/vtech/venv/bin/python /opt/vtech/scripts/ops/daily_mbo_pull.py
+TimeoutStartSec=3h
+Nice=10
+StandardOutput=append:/opt/vtech/logs/mbo-daily.log
+StandardError=append:/opt/vtech/logs/mbo-daily.err
+
+# Scoped like vtech-compress-raw-live: writes only under the data and log trees.
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/vtech/data /opt/vtech/logs
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

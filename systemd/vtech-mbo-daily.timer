@@ -1,0 +1,21 @@
+# RETIRED 2026-09-29 (ADR-146): MBO moved to the live streamer (same architecture as tbbo),
+# so there is no longer a recurring daily catch-up. Uninstalled from systemd (was:
+# /etc/systemd/system/vtech-mbo-daily.{timer,service} -> here). Kept in the repo for reference
+# and in case a one-off historical gap-fill run is ever needed again — see daily_mbo_pull.py's
+# docstring. Do not re-enable without re-reading why it was retired.
+[Unit]
+Description=VTech daily MBO catch-up (03:30 America/Chicago) — RETIRED, see header comment
+Documentation=file:///opt/vtech/scripts/ops/daily_mbo_pull.py
+
+[Timer]
+# Databento serves MBO ~8 h behind real time, so the previous UTC day is fully available from
+# 08:00 UTC. 03:30 CT = 08:30 UTC (CDT) / 09:30 UTC (CST). IANA tz handles the DST change.
+OnCalendar=*-*-* 03:30:00 America/Chicago
+# A run missed while the VM was down is caught up on next boot; the script backfills from the
+# DB's last day, and the free window is ~1 month.
+Persistent=true
+AccuracySec=1min
+Unit=vtech-mbo-daily.service
+
+[Install]
+WantedBy=timers.target

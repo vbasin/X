@@ -1,0 +1,40 @@
+# locked_sections.yaml — config keys that must never appear in a config_diff.
+#
+# The Policy Engine's Gate 2 rejects any experiment spec whose config_diff
+# contains a key matching one of these patterns.
+#
+# Format: dot-notation paths, exactly matching config.yaml structure.
+# Wildcard suffix ".*" matches the key itself AND all nested children.
+# Example: "paths.*" blocks "paths.data_dir", "paths.model_dir", etc.
+#
+# Everything NOT listed here is fair game for experiment proposals.
+
+locked:
+  # --- Filesystem paths (must never change in an experiment) ---
+  - paths.*
+
+  # --- Snapshot metadata (set at export time, not editable) ---
+  - snapshot.*
+
+  # --- Program objective (immutable: agents optimize the model to DETECT the target,
+  #     never to change it — e.g. labels.big_move_threshold / labels.mae_tolerance) ---
+  - labels.*
+
+  # --- MLflow infrastructure (tracked separately; not a training knob) ---
+  - mlflow.artifact_root
+  - mlflow.tracking_uri
+  - mlflow.backend_store_uri
+
+  # --- Feature pipeline constants (changing these invalidates all Parquets) ---
+  - data.feature_timestep
+  - data.training_start
+  - data.training_end
+  - data.timezone
+
+  # --- Reproducibility anchors (must be set at spec level, not config_diff) ---
+  - training.seed
+  - training.intraop_threads
+  - training.min_steps_per_epoch
+
+  # --- Logging infrastructure (no impact on model performance) ---
+  - logging.*

@@ -1,0 +1,13 @@
+[Unit]
+Description=VTech OCI Sync Timer (daily at 02:00 UTC — off-peak)
+
+[Timer]
+# Run daily at 02:00 UTC (off-peak, after market close data settles)
+OnCalendar=*-*-* 02:00:00 UTC
+# Re-run immediately on next boot if last run was missed
+Persistent=true
+# Jitter up to 5 min to avoid thundering-herd with other timers
+RandomizedDelaySec=300
+
+[Install]
+WantedBy=timers.target

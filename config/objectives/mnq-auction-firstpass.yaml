@@ -1,0 +1,127 @@
+# Superseded candidate-exit objective (ADR-123, amended by ADR-126).
+# This is not the cascade. The cascade is nq-Rscaled-mkt.yaml
+# (cascade_policy.py: 5s grid, 30-minute horizon, target >= 0.25 R,
+# stop = min(0.5 x target, 0.25 R), print tape, classification).
+#
+# Identity below is the amended first-passage definition, taken from:
+#   src/training/first_passage.py          FirstPassageConfig
+#   src/training/path_labels.py            session_r, PathLabelConfig
+#   src/features/cash_session_profile.py   LevelConfig, entry_levels,
+#                                          bound_candidates
+#   scripts/features/build_first_passage.py  --candidates bounds
+#   scripts/features/eval_first_passage_model.py
+#
+# The label builder's --candidates default is still "profile" (HVN/LVN
+# nodes, fill at the decision close). ADR-126 superseded that path.
+# A run of THIS objective uses --candidates bounds.
+#
+# ADR-126's prose once says entry_offset_r = 0.05. The code rests
+# entry_offset_pts = 1.0 index point between bounds. This file follows
+# the code.
+#
+# NOT WIRED. No first-passage script reads this file. Learner knobs
+# (XGBRegressor, 300 trees, depth 6, learning rate 0.05) are the eval
+# script's defaults and are not identity.
+
+objective_id: "mnq-auction-firstpass"
+schema_version: "v2"
+
+description: >
+  Intraday NQ trades whose exit is chosen from auction levels. Each
+  decision bar offers a grid of (side, target level, stop level). The
+  model regresses pnl_r of that geometry. The book takes the geometry
+  with the highest predicted pnl_r, one position at a time. Entry is a
+  resting order at the far edge of the containing bound, cancelled if
+  unfilled within 15 minutes. The race runs from the fill until the
+  15:00 flatten. A touch is read on the 1-second high/low, and a same-bar
+  tie goes to the stop. R is the median of the prior 5 completed
+  sessions' own median 10-minute ranges on that 1-second grid, measured
+  through the flatten. The current session contributes nothing.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: >
+      Prices, levels, and the 1s path are the NQ lead contract. The
+      book in eval_first_passage_model.py marks one MNQ at $2 per
+      index point and applies no costs. MNQ is the sizing unit, not
+      a second market.
+
+directions: [long, short]
+
+economic_intent: positive_selective_net_expectancy_after_costs
+
+horizon:
+  max_trade_horizon: "session_close"      # flatten_index; not a fixed 30 minutes
+  holding_max: intraday
+
+session:
+  trading_start: "08:30"                  # FirstPassageConfig.entry_start
+  trading_end: "14:45"                    # entry_end; last decision is strictly before this
+  flatten: "15:00"                        # FirstPassageConfig.flatten
+  timezone: America/Chicago
+  decision_grid_seconds: 60               # FirstPassageConfig.decision_grid_seconds
+
+labels:
+  scheme: candidate_exit_surface
+  target_observation: path_1s_hilo
+  entry: limit
+  unit: R
+  unit_definition:
+    # build_first_passage.py: r_prior = median(r_hist) BEFORE r_today is
+    # appended. session_r() on PathLabelConfig(entry_end=flatten).
+    source: prior_session_median
+    lookback_sessions: 5                  # PathLabelConfig.vol_lookback_sessions
+    excludes_current_session: true
+    per_session_metric: median_1s_block_range
+    per_session_block_seconds: 600        # PathLabelConfig.vol_window_seconds
+    window_end: "15:00"                   # rcfg.entry_end = flatten, not 14:45
+  outcome:
+    task: regression                      # XGBRegressor on pnl_r, not a classifier
+    target: pnl_r                         # pnl_pts / r_value; pnl_pts = side * (exit - fill)
+    tie_policy: stop_first                # FirstPassageConfig.tie_policy
+    time_barrier: session_flatten
+    censored_exit: flatten_close          # event 0 exits at close[flatten bar]
+    unfilled_emits_row: false
+  candidates:
+    # --candidates bounds. Not a 0.25 R minimum and not stop = min(0.5 x target, 0.25 R).
+    source: kde_bounds_plus_ladder        # LevelConfig sigma_pts; bound_candidates ladder
+    product: cartesian_target_stop        # every far target x every adverse stop
+    level_lookback_sessions: 20           # LevelConfig.lookback_sessions
+    sigma_pts: 5.0                        # LevelConfig.sigma_pts
+    min_dist_r: 0.05                      # bound_candidates, measured from the decision price
+    max_dist_r: 3.0
+    fill_min_dist_r: 0.10                 # FirstPassageConfig.min_dist_r, from the fill
+    max_per_side_per_kind: 10             # CLI --max-candidates; structural and ladder each
+    ladder_r: [0.25, 0.5, 0.75, 1.0, 1.5, 2.0]
+    budgets: separate_structural_and_ladder
+  entry_rule:
+    inside_bound: far_edge                # entry_levels: long at the bound high, short at the low
+    between_bounds_offset_pts: 1.0        # LevelConfig.entry_offset_pts
+    max_fill_wait_seconds: 900            # FirstPassageConfig.max_fill_wait_seconds
+    race_starts_at: fill                  # label_entry from the fill bar at the fill price
+  selection:
+    per_bar: argmax_predicted_target      # groupby decision ts, idxmax predicted pnl_r
+    book: one_position
+    busy_seconds: t_fill_plus_t_event     # capital commits at the decision
+    threshold: train_quantiles
+    quantiles: [0.50, 0.75, 0.90, 0.95, 0.99]
+    operating_point: max_t_stat
+    min_trades: 150
+    tradability: stop_sizes_to_one_contract
+    costs_applied: false                  # the printed book is 1 MNQ, no costs
+    account: 5000
+    max_risk_pct: 0.02
+    point_value_dollars: 2
+
+kpi:
+  primary: t_stat                         # frontier point with the best t-stat, n >= min_trades
+
+eval:
+  bar_stride: 15                          # build_training_matrix.py; labels stay on the 60s grid
+  walk_forward:
+    test_months: 2
+    min_train_months: 4
+    purge_sessions: 1                     # a label can run to the flatten

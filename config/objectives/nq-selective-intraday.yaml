@@ -1,0 +1,33 @@
+objective_id: nq-selective-intraday
+schema_version: v2
+description: >
+  Selective one-contract NQ intraday expected net return with trailing closed-bar
+  volatility risk, executable quote fills and bounded concurrent exposure.
+traded products:
+  - symbol: NQ
+    role: primary
+    security_type: futures
+    asset_class: equity_futures
+directions: [long, short]
+economic_intent: positive_selective_net_expectancy_after_costs
+horizon:
+  max_trade_horizon: 30m
+  holding_max: intraday
+session:
+  trading_start: '08:45'
+  trading_end: '14:25'
+  flatten: '15:00'
+  timezone: America/Chicago
+  decision_grid_seconds: 300
+labels:
+  scheme: first_passage_r
+  target_observation: print_tape
+  entry: market
+  unit: R
+  unit_definition: 'R = tick-rounded max(8, 2 * trailing 20 closed 1m bars mean true range); abstain if R > 60 points'
+  move_threshold: 1.5
+  mae_tolerance: 1.0
+kpi:
+  primary: net_expectancy
+costs:
+  execution_cost_profile: NQ

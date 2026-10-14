@@ -1,0 +1,478 @@
+# Machine-readable pointer to canonical project truth.
+# Generated/maintained by hand as part of ADR-136 (canonical research architecture).
+# A fresh agent should be able to orient from this file + docs/ARCHITECTURE.md alone.
+# This file describes STRUCTURE and STATUS. It is not itself an experiment artifact
+# or a config source of truth — config.yaml / config/objectives/*.yaml remain that
+# (see docs/CONFIG_AUDIT.md for what's actually consumed).
+
+schema_version: 1
+last_reviewed: "2026-09-22"
+supersedes_note: >
+  Re-derive this file's "implementations" section whenever a track's lifecycle
+  status changes (e.g. a Track C promotion, a Track B fix). Do not let it drift
+  silently out of sync with docs/ARCHITECTURE.md — that doc is the prose source
+  of truth this file mirrors in machine-readable form.
+
+canonical_docs:
+  architecture: docs/ARCHITECTURE.md
+  workflow: docs/RESEARCH_WORKFLOW.md
+  experiments: docs/EXPERIMENTS.md
+  data_contracts: docs/DATA_CONTRACTS.md
+  config_audit: docs/CONFIG_AUDIT.md
+  functional_coverage: docs/FUNCTIONAL_COVERAGE.md
+  storage_contract: docs/STORAGE_CONTRACT.md
+  storage_inventory: docs/STORAGE_INVENTORY.md
+  environment: docs/ENVIRONMENT.md
+  script_inventory: docs/SCRIPT_INVENTORY.md
+  adr_index: docs/decisions/ADR_INDEX.md
+  migration_manifest: docs/MIGRATION_MANIFEST.md
+  agent_contract: docs/PUBLIC_SHOWCASE.md
+  founding_adr: docs/decisions/ADR-136-canonical-research-architecture.md
+
+canonical_cli: "python -m src.experiment.cli"
+canonical_cli_subcommands: [status, validate-config, run-inspect, run-compare, verify]
+# run-compare reports SETUP and RESULTS as separate sections (docs/EXPERIMENTS.md §3).
+
+
+architecture_model: two_plane   # revised 2026-09-22 (third pass); see docs/ARCHITECTURE.md §1
+planes:
+  research: "what produces and validates a trading edge"
+  platform: "what makes running the research plane possible at all"
+  note: >
+    The original ADR-136 twelve responsibilities were a decomposition of the
+    RESEARCH PROBLEM, not of this repository. The bottom-up audit
+    (docs/FUNCTIONAL_COVERAGE.md) found 4 further research-plane
+    responsibilities and 8 platform-plane responsibilities with no owner.
+    Entries below without an explicit `plane:` are research-plane and have a
+    src/ subpackage; entries with `plane: platform` are durable
+    capabilities that already exist in src/ and deliberately have NO canonical
+    subpackage (creating one would be parallel abstraction for symmetry only).
+
+responsibilities:
+  # id: matches the subpackage under src/ and the section in docs/ARCHITECTURE.md
+  - id: data_contracts
+    status: PARTIAL_IMPLEMENTATION
+    implementation_module: src/common/causal.py
+    note: "causal.py is real/tested; raw schema + session/roll contracts are documented (docs/DATA_CONTRACTS.md), not yet code-enforced."
+  - id: features
+    status: INTERFACE_ONLY
+    current_implementations:
+      - {track: B, module: src/features/engine.py, status: ACTIVE}
+      - {track: C, module: "src/training/entry_state.py, src/features/flow_state.py, src/features/structural_transitions.py", status: ACTIVE}
+  - id: outcomes
+    status: INTERFACE_ONLY
+    current_implementations:
+      - {track: B, module: src/training/labels.py, status: PRODUCTION_WIRED_WEAK}
+      - {track: C, module: src/training/move_label.py, status: ACTIVE}
+  - id: model_strategy
+    status: INTERFACE_ONLY
+    current_implementations:
+      - {track: B, module: "src/models/catalog.py (xgboost, attention_lstm, tcn_close, tcn_so_mbp_vix, meta__xgboost, meta_stack__attention_lstm)", status: PRODUCTION_WIRED_WEAK}
+      - {track: C, module: "scripts/features/eval_move_model.py, scripts/features/eval_target_model.py", status: ACTIVE}
+  - id: validation
+    status: ACTIVE
+    implementation_module: src/validation/
+    current_implementations:
+      - {track: C, module: "src/validation/folds_from_objective, applied by eval_move_model.py and eval_target_model.py _fold_masks", status: ACTIVE}
+      - {track: B, module: "src/validation/walk_forward.py expanding_calendar when requested; src/search/controller.py::_build_folds equal-count fallback", status: "ACTIVE — equal-count still ignores the calendar settings; see open_critical_findings/two-walk-forward-engines-incompatible-config"}
+  - id: calibration
+    status: NOT_IMPLEMENTED
+    current_implementations: []
+    note: "Confirmed absent from both tracks' live code paths. Net-new responsibility."
+  - id: decision_policy
+    status: INTERFACE_ONLY
+    current_implementations:
+      - {track: C, module: "scripts/features/build_target_matrix.py (p_move>=tau gate, resting/immediate entry)", status: ACTIVE}
+  - id: economic_evaluation
+    status: PARTIAL_IMPLEMENTATION
+    implementation_module: src/evaluation/economic.py
+    note: >
+      economic.py is real/tested. Execution contract (fifth pass): MARKET/STOP
+      at executable bid/ask (never midpoint; STOP price is a trigger), LIMIT
+      at limit with no slippage; spread is NOT slippage (slippage = 0,
+      persisted); quantity persisted; one all-in commission per completed
+      trade from config/execution_costs.yaml (NQ $3.36, MNQ-equivalent $1.03
+      independent, multiplier 0.1x NQ, priced off NQ data). t_stat_iid only;
+      inference DEFERRED. Wired into portfolio_sim and into Track C's
+      persisted book in eval_target_model.py (fill price in, barrier
+      price out). Other paths still price on their own: _kpi.py,
+      backtest/engine.py, cascade_backtest.py, paper, and external models.
+    current_implementations:
+      - {track: B, module: "src/backtest/portfolio_sim.py via src/evaluation/economic.py; src/evaluation/_kpi.py and src/backtest/engine.py still separate", status: PARTIAL}
+      - {track: C, module: "scripts/features/eval_target_model.py persisted ledger via economic.py; src/backtest/cascade_backtest.py still separate", status: PARTIAL}
+  - id: experiment
+    status: PARTIAL_IMPLEMENTATION
+    implementation_module: src/experiment/
+    note: >
+      manifest.py, config_validation.py, comparison.py, schemas.py are all
+      real/tested. config_validation.py was integration-checked (read-only)
+      against the real config.yaml and config/objectives/nq-50pt-econ.yaml
+      in this repository and correctly reproduces the manually-audited dead
+      fields / slippage bug (see tests/architecture/test_config_validation.py's
+      two real-fixture tests). FIRST INTEGRATION DONE (fourth pass):
+      src/search/controller.py now writes manifest.json alongside run.json
+      via src/search/run_manifest.py -- purely additive, best-effort, no
+      existing artifact or consumer touched. Manifests from that path report
+      evidence_level: INCOMPLETE (no hypothesis, no seed recorded anywhere on
+      the search path; config_snapshot is populated but never claimed
+      resolved, since a multi-candidate sweep has no single run-level
+      config) rather than fabricating the missing provenance.
+      comparison.py/schemas.py remain unwired. Sixth pass: term is
+      objective_id (manifest schema v2; v1 research_objective_id read and
+      normalised); output contract = src/experiment/artifacts.py;
+      objective identity vs defaults = x-objective-role in
+      objective.schema.json. Cascade objective:
+      config/objectives/nq-Rscaled-mkt.yaml (not wired).
+      mnq-auction-firstpass.yaml is the superseded ADR-123/126
+      candidate-exit objective. It previously copied cascade_policy
+      literals; that was corrected. Market-entry cascade runs use
+      nq-Rscaled-mkt. Objective runs write manifest.json (schema v4) as
+      the only run-level file: passes, the resolved objective, and the
+      fold design. run.json, contract.json, and folds.json stay readable
+      for older runs. model.json holds that model's feature list and join
+      spec. training_matrix.parquet is an optional pass-level population
+      cache. OOF files do not store feature columns. Feature, context,
+      and upstream-prediction joins are as-of on ts: a closed bar is
+      visible at its close, and a session summary after that session
+      closes. Labels may use the forward path. Fitted Track B
+      custom_test runs were migrated into research/runs and
+      data/research/custom_test is gone. evaluation/nq-50pt*,
+      portfolio_sim, move_analysis, and context_analysis stay mapped in
+      docs/new_file_map.md. A Track B model folder
+      also keeps model.keras, model.pkl, meta.pkl, meta_estimator.pkl,
+      and scaler.pkl. An Optuna HPO study is one objective run under
+      research/runs/ (hpo.json and trials_summary.parquet beside
+      manifest.json; one pass_n/model_<id>/ per trial). validation
+      records the folds the study scored, not a forced last_range fold.
+      The writer is scripts/search/hpo_model_search.py. research/search/
+      is a separate compatibility root. New runs write research/runs/.
+      Seventh
+      pass: corrected the cascade's R definition (prior-5-session median, not
+      current-session) and default economic sizing (MNQ_equivalent, not
+      NQ); decision_grid_seconds/kpi.primary reclassified identity->default,
+      new economic_intent field added; config_snapshot_resolved flag added
+      (adapter always False); store_id-only datasets no longer satisfy
+      version evidence; manifest.artifacts keys enforced canonical-only.
+  - id: model_lifecycle
+    status: INTERFACE_ONLY
+    implementation_module: src/serving/lifecycle.py
+    note: "status.py vocabulary is real/tested; registry logic still points at Track B's data/models/model_registry."
+    current_implementations:
+      - {track: B, module: "src/serving/promote.py, ADR-071 champion gate", status: PRODUCTION_WIRED}
+  - id: serving
+    status: INTERFACE_ONLY
+    current_implementations:
+      - {track: B, module: "src/serving/, src/paper/, src/execution/", status: "WIRED but paper trading inactive since 2026-08-05"}
+  - id: orchestration
+    status: INTERFACE_ONLY
+    current_implementations:
+      - {track: B, module: "src/research_director/, src/scoping/, scripts/search/", status: ACTIVE}
+
+  # --- added by the third-pass bottom-up audit (docs/ARCHITECTURE.md §1.0) ---
+  - id: dataset_registry
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: "src/features/stores.py (~47 call sites, highest fan-in in repo) + src/training/label_store.py (content-addressed label_contract_id). REUSE AS CANONICAL — DatasetRef in manifest.py refers to it, does not replace it."
+  - id: trade_definition
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: "src/training/cascade_policy.py. Upstream of both Outcome Builder and Decision Policy."
+  - id: population_eligibility
+    status: NO_SINGLE_OWNER
+    note: "src/training/path_labels.py::session_r/min_stop_ticks + cascade gate populations. Unowned; the mechanism behind cascade-population-shift."
+  - id: cost_model
+    status: NO_SINGLE_OWNER
+    note: "src/training/cost_matrix.py puts costs in the TRAINING OBJECTIVE (:216,:368,:410), objective costs: blocks and EconomicAssumptions put them in post-hoc scoring. Cross-cutting; owning it inside economic_evaluation alone misses the path that changes what the model learns."
+  - id: acquisition_ingestion
+    plane: platform
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: "src/acquisition/, src/ingestion/"
+  - id: storage_sync
+    plane: platform
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: >
+      src/common/data_paths.py (97 importers) is THE canonical logical-path resolver — extend
+      it, never parallel it; src/common/object_store.py, src/gpu_runner/parquet_sync.py.
+      Eighth pass (2026-09-22, docs/STORAGE_INVENTORY.md): full read-only re-inventory of the
+      live /opt/vtech/data tree (111G) against actual producer/consumer code. Closed 3 resolver
+      gaps (live/ signal bridge, session_profile/, research_director/regimes -- all additive,
+      path-identical, 226 tests pass) and renamed the misleading "resolved_config" artifact
+      class to config_snapshot. Confirmed, not fixed (each requires a behavior change or DB
+      write out of this pass's scope): research/search/_fold_cache grew 14G->39G with no
+      eviction; move_matrix/target_matrix consumer scripts default one generation behind their
+      producer's current output (live correctness risk); the MLflow artifact store has an
+      unresolved split-brain between ops/mlflow_artifacts and the pre-reorg top-level dir;
+      Track C's outcome datasets still carry no version identity beyond a directory suffix.
+      Top-level directory names (sources/research/models/evaluation/ops/legacy) are affirmed
+      canonical; docs/architecture/DATA_LAYOUT.md §4's market/experiments/_legacy/ rename
+      proposal was never adopted and is not revived.
+      Ninth pass (2026-09-22, targeted correction): Track B's label_store.py was mislabeled
+      content-addressed; it is CONTRACT-addressed (label_contract_id() hashes the semantic
+      contract, never the parquet bytes; force=True can replace parts beneath an unchanged
+      contract_id -- not content-immutable). Fixed a real false-provenance bug this caused:
+      src/search/run_manifest.py had been surfacing a contract-metadata hash as
+      DatasetRef.content_sha256; now always None on that path, with a new DatasetRef.build_id
+      field (content > build > contract > store) honestly carrying realization identity
+      instead. Designed (not executed) one canonical outcome-dataset pattern for Track B and
+      Track C (docs/STORAGE_CONTRACT.md §17); resolved the live/ vs ops/ contradiction
+      (ops/live/ is the target, live_dir() prefers it once populated, no files moved);
+      reclassified the feature hive as conditionally reproducible, not a pure cache, since
+      FeatureEngine reads TimescaleDB, not just sources/raw/. Migration matrix completed
+      (docs/STORAGE_INVENTORY.md §3.1-3.7, was representative-only). 249 tests pass.
+      Tenth pass (2026-09-22, Storage Implementation Tranche 1): finalized the exact
+      canonical outcome-dataset syntax, replacing the ninth pass's overloaded single slot
+      with two dimensions -- sources/labels/<outcome_family>/<resolution>/<contract_id>/
+      (docs/STORAGE_CONTRACT.md §17.1-§20). Retired the ninth pass's build_id mechanism
+      (a fingerprint of output filenames/sizes is not genuine build evidence); build_id is
+      now populated only from real code/config/upstream evidence
+      (label_store.write_build_sidecar, src.common.code_identity, new this pass) or left
+      None. contract_id-only DatasetRefs now correctly count as missing evidence, not
+      complete (RunManifest.missing_evidence); RunManifest.schema_version bumped 2->3 for
+      this meaning change (v1/v2 still readable). Added DatasetRef.semantic_type =
+      "predictions", distinct from outcomes. Reverted live_dir()'s auto-cutover to
+      ops/live/ (ninth pass) -- it now always resolves to the current top-level live/ path;
+      adopting ops/live/ requires an explicit future migration, not a filesystem probe.
+      Fixed the live STOR-2 risk: eval_move_model.py/eval_target_model.py --dir and
+      build_target_matrix.py --move-dir no longer silently default to a stale
+      version-suffixed dataset, all three now fail clearly when unresolvable. Classified
+      every build_move_matrix.py/build_target_matrix.py CLI field as semantic/
+      build-population/execution-only (§19) and wired opt-in --canonical-write support on
+      both builders (not executed -- no Track C data rebuilt).
+      2026-09-23 (canonical run layout, audit remediation steps 1-8): the one migrated run
+      on disk was non-conforming (legacy run.json trio, no manifest.json, per-model matrix
+      path, model.json missing target/feature_columns/inputs, OOF still carrying feature
+      columns). Fixed the writers and re-emitted it as nq-Rscaled-mkt/20260923T132829Z:
+      manifest.json only, pass-level population caches, OOF 125->18 and 77->27 columns
+      (362M->37M, 17.6M->5.3M), three dataset refs including the upstream OOF typed as
+      predictions. build_oof_analysis.py rebuilds the full 125-column table from the compact
+      OOF plus the cache. classify_existing() recognised NO model weight file (not even
+      model.ubj) -- added a model_artifact class over .ubj/.keras/.pkl/meta*.pkl plus the
+      serving-bundle and report files. Model identity moved out of the path resolver into
+      src/experiment/model_identity.py, and the cascade's pass roles and feature
+      views into src/training/cascade_run_spec.py, so run_layout.py holds no model-type or
+      stage vocabulary (test-enforced). merge_pass() froze datasets after the first pass and
+      silently dropped pass 2's dataset identity -- now re-derived and unioned, with
+      RunManifest.write accepting an additive dataset change while still refusing a changed
+      or dropped ref. Path primitives (prepare_path/session_grid/parse_hhmm) extracted from
+      portfolio_sim to src/features/session_path.py -- they were imported as PRIVATE names by
+      six modules. EconomicAssumptions gained optional per-leg slippage and
+      SimConfig.as_assumptions()/from_assumptions() are the whole economic bridge; the sim's
+      $5.00 round trip is NOT silently replaced by the $3.36 NQ profile. read_run_record() now
+      reads Track B search/custom_test runs too (one reader, three run shapes; WebUI still
+      lists 185 runs). EvalContract.from_manifest()/load_latest(run_dir=...) sequence the
+      hold-out-pin handover and RAISE on disagreement rather than ranking two sources of
+      truth; the four pinned nq-50pt* objectives resolve exactly as before. 377 tests pass,
+      with zero new failures against a stashed baseline (36 pre-existing failures unchanged).
+      2026-09-23 (Track B joins the canonical architecture, steps 1-5): migrated the
+      representative complex Track B run nq-50pt-econ-lg-st/20260829T182514Z (3 base models
+      on 3 native timeframes, Keras + 2 pickled XGBoost, tf_oof_meta pass 2, scalers,
+      serving files, multi-class SHAP) into research/runs/, proving the canonical layout
+      supports Track B as cleanly as Track C. Extracted the core to
+      src/search/canonical_run.py::emit_canonical_run and wired src/search/controller.py to
+      call it when a search run finishes, so FUTURE Track B runs write the canonical layout
+      directly instead of relying on post-hoc copying; weight files are hard-linked, so the
+      canonical tree costs no extra storage. Closed the manifest evidence gaps where the
+      evidence genuinely exists: merge_pass now accepts seeds/execution_assumptions/code/
+      extra, and new economic.assumptions_record() is the single builder for a run's cost
+      record (resolves the objective's execution_cost_profile, refuses to read an unparsed
+      slippage_model as zero, and records declared_not_applied when a run applied a cost its
+      objective did not declare -- which surfaced the ADR-136 dead slippage_model finding per
+      run). Fixed a real provenance error: merge_pass stamped every manifest with the CURRENT
+      commit, so a migrated historical run claimed code it never saw; emit_canonical_run now
+      reads the run's own recorded git_sha and refuses a run-level identity when the fits
+      disagree. Nothing fabricated for historical runs -- absent seeds/config_snapshot/build
+      identity are reported in missing_evidence with the reason in extra.evidence. Finished
+      the economic consolidation: portfolio_sim.trade_ledger()/cost_sensitivity() route
+      through canonical/evaluation/economic.py, with an explicit comparison test proving the
+      canonical ledger equals the simulator's own net_usd per trade and in aggregate.
+      Retired no legacy artifact: tests/architecture/test_legacy_retirement_gate.py pins that
+      each of run.json/search_result.json/folds.json/feature_schema.json/
+      finalize_manifest.json/compose.json still has a real consumer AND a canonical
+      replacement. Track C run 20260923T143018Z carries the complete evidence record. A second
+      Track B run (nq-50pt-tbm/20260821T072412Z) exercised the case where a historical
+      candidate_id IS its own model type ('xgboost'): the folder falls back to the
+      configuration hash and source_candidate_id keeps the old pointer resolvable.
+      404 tests pass, zero new failures against the 36-failure pre-existing baseline.
+  - id: compute_resources
+    plane: platform
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: "src/common/{vm_config,gpu_provider,gpu_exec,oci_queue}.py, src/gpu_runner/"
+  - id: job_orchestration_state
+    plane: platform
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: "src/webui/jobs.py (only job-state store, survives restarts), src/gpu_runner/dispatch.py"
+  - id: code_identity
+    plane: platform
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: "src/common/code_bundle.py (sha256-verified bundling), src/common/repro.py. CodeIdentity in manifest.py RECORDS this; code_bundle ENFORCES it."
+  - id: observability
+    plane: platform
+    status: WEAK
+    note: "src/training/job_progress.py, src/common/logging.py. structlog has 1 caller vs 92 basicConfig users; research_director/sentinel.py alerting has zero callers."
+  - id: interface_surface
+    plane: platform
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: "src/webui/ (~62 endpoints, 11,930 LOC). NOT a presentation layer — serving/execution import from it (see open_critical_findings/serving-depends-on-webui)."
+  - id: research_automation
+    plane: platform
+    status: EXISTING_IMPLEMENTATION_IS_CANONICAL
+    note: >
+      src/research_director/, src/scoping/, src/agentic/, src/common/llm/
+      (43 files, ~7,100 LOC). CAVEAT (adversarial review, third pass):
+      src/research_director/evaluator.py is bucketed here by DIRECTORY,
+      but its content -- bootstrap 95% CI on the aggregate fold delta,
+      guardrail non-regression, improvement on >= ceil(2/3) of folds
+      (:19-21) -- is a Validator / Model Lifecycle concern and is
+      stricter than anything in src/validation. This is
+      classification-by-directory, the same anti-pattern flagged for
+      entry_state.py and path_features.py. Reassign when evaluator.py is
+      next touched; not moved in this pass.
+
+tracks:
+  A:
+    name: legacy detection models
+    status: ARCHIVED
+    evidence: "data/legacy/checkpoints/model_v015_fold* last modified 2026-06-03; zero live code references"
+  B:
+    name: nq-50pt-econ (objectives framework / Research Director / Custom Test Lab)
+    status: PRODUCTION_WIRED_NON_FUNCTIONAL
+    config_pin: "config.yaml:11 objective_id"
+    evidence: "every candidate run Aug 21-29 2026 collapses toward majority class; meta-stack layer produces 0 signals in every run inspected; one promoted model (2026-08-05) realized ~26x worse expectancy in paper trading than its backtest claimed; paper trading inactive since 2026-08-05"
+  C:
+    name: MNQ Auction Cascade
+    status: ACTIVE_RESEARCH_NOT_PRODUCTION_WIRED
+    adr: ADR-127
+    evidence: "best causal-engineering hygiene in repo (independently re-audited 2026-09-22); WebUI-facing backtest has zero cost modeling; console-only cost-sensitivity shows edge not significant at 1 tick slippage, negative at 2 ticks"
+
+open_critical_findings:
+  - id: track-c-full-session-order-flow-normalization
+    severity: CRITICAL
+    reviewed: "2026-09-24"
+    summary: >
+      entry_state.py::_order_flow uses full-request CVD/OFI maxima, so
+      es_cvd_*, es_delta_* and es_ofi_cum can depend on later decisions.
+      Synthetic prefix invariance demonstrably fails. Prior blanket causal
+      assurances are superseded; affected matrices require rebuild/revalidation.
+      Independent nq-selective-intraday features exclude this module.
+    evidence: docs/research/NQ_SELECTIVE_RESULTS.md
+  - id: economic-evaluation-inconsistency
+    severity: CRITICAL
+    summary: >
+      At least 10 divergent trade-economics implementations (the earlier
+      count of 4 undercounted): backtest/{engine,cascade_backtest,portfolio_sim,
+      weights_score(x2 sub-modes)}, paper/engine, execution/ledger,
+      evaluation/_kpi, external_models/{pine_sar_ema,orb,vwap_cross},
+      webui/chart_models/interpreter -- plus training/cost_matrix, which puts
+      economics into the TRAINING OBJECTIVE rather than post-hoc scoring.
+      They disagree on slippage (0 vs 1pt/side vs 2 ticks), contract
+      multiplier (1.0 vs 2.0 MNQ vs 20.0 NQ -- a 10x spread rendered in the
+      same UI), sharpe_daily (annualized vs not, 15.87x), and sharpe_trade
+      (which is a t-statistic in cascade_backtest.py:205, not a Sharpe).
+      No headline PnL number in the repo is trustworthy at face value.
+    tracking_doc: docs/FUNCTIONAL_COVERAGE.md
+  - id: frozen-eval-contract-broken-for-production-objective
+    severity: CRITICAL
+    summary: >
+      data/evaluation/nq-50pt-econ/contract_v1.json's objective_snapshot
+      contains only ['note','hold_out_source','primary'] instead of the
+      objective. src/evaluation/_kpi.py:34-39 then defaults mae_tolerance=5,
+      so contract-scored nq-50pt-econ candidates are priced at a 5-point stop
+      instead of the declared 6-point stop. Separately the hold_out hash is
+      never actually checked: contract.score() only enforces it when
+      data_hash is not None, and controller._record_all never passes it.
+    tracking_doc: docs/FUNCTIONAL_COVERAGE.md
+  - id: no-run-records-seed-or-code-revision
+    severity: HIGH
+    summary: >
+      repro.set_global_seed is called only from the three legacy trainers;
+      zero calls from src/search, src/models, src/evaluation. The production
+      tabular plugins pass no random_state. No run artifact records a seed,
+      so Track B runs are not reproducible. Separately repro.get_git_sha has
+      zero callers; the only git SHA reaching a run dir is
+      finalize_manifest.json's, via a helper with no dirty-tree guard.
+    tracking_doc: docs/FUNCTIONAL_COVERAGE.md
+  - id: leaderboard-rows-not-traceable-to-runs
+    severity: HIGH
+    summary: >
+      leaderboard.py:82-97 writes no run_ts, so a leaderboard row cannot be
+      traced to the run directory that produced it -- only to an
+      mlflow_run_id that is frequently null (MLflow logging is best-effort
+      and exceptions are swallowed). get_leaders dedupes by candidate_id
+      keeping max precision, so an older run can permanently mask a newer one.
+    tracking_doc: docs/FUNCTIONAL_COVERAGE.md
+  - id: session-levels-has-no-run-identity
+    severity: HIGH
+    summary: >
+      src/features/session_profile.py:170-172 merges session_levels.parquet
+      newest-build-wins with no run id, version or timestamp column. It is
+      the cascade's structural SSOT and feeds build_move_matrix.py and
+      build_target_matrix.py, so two Track C experiments run days apart can
+      rest on different structural inputs undetectably. A concrete mechanism
+      behind the cascade-population-shift finding.
+    tracking_doc: docs/FUNCTIONAL_COVERAGE.md
+  - id: track-c-outcome-datasets-lack-formal-version-identity
+    severity: MEDIUM
+    summary: >
+      RESOLVED (tenth pass, 2026-09-22) the live half of this finding:
+      eval_move_model.py/eval_target_model.py --dir are now required=True
+      and build_target_matrix.py --move-dir fails clearly when unresolvable
+      -- no consumer silently defaults to a stale version-suffixed dataset
+      (move_matrix_v3, unsuffixed target_matrix) anymore. Downgraded from
+      HIGH: the remaining gap is the ROOT CAUSE, not a live correctness
+      risk -- sources/labels/'s Track C outcome datasets still carry no
+      formal version identity beyond a directory-name suffix. The target
+      mechanism is now fully designed AND implemented
+      (docs/STORAGE_CONTRACT.md §17.1/§19, label_store.outcome_set_dir()/
+      move_outcome_contract()/target_outcome_contract(),
+      build_move_matrix.py/build_target_matrix.py --canonical-write) but not
+      executed -- Track C's existing ~2G of move_matrix/target_matrix data
+      has not been rebuilt or backfilled into the canonical
+      <outcome_family>/<resolution>/<contract_id>/ layout.
+    tracking_doc: docs/STORAGE_INVENTORY.md
+  - id: serving-depends-on-webui
+    severity: MEDIUM
+    summary: >
+      src/features/live_runtime.py:232,263,679, src/features/engine.py:359
+      and src/execution/gateway.py:167-168 import from src.webui.live /
+      regmodel, and the live signal contract (data/live/signals.jsonl) is
+      produced by src/webui/live.py:1798-1890. Any reorganization treating
+      src/webui as a presentation layer will break serving and execution.
+    tracking_doc: docs/FUNCTIONAL_COVERAGE.md
+  - id: cascade-population-shift
+    severity: CRITICAL
+    summary: "Track C's Stage-3-equivalent model's reported AUC changes are confounded with upstream gate-composition shift; no isolation tooling exists"
+  - id: track-b-backtest-vs-paper-gap
+    severity: CRITICAL
+    summary: "Track B's one promoted model backtested at hit_rate=0.605/expectancy=26.9pt; realized paper trading delivered hit_rate=0.175/expectancy~1.0pt"
+  - id: two-walk-forward-engines-incompatible-config
+    severity: MEDIUM
+    summary: >
+      Two walk-forward engines coexist with incompatible config contracts.
+      expanding_equal_count (src/search/controller.py::_build_folds) READS
+      eval.walk_forward_folds as an input. expanding_calendar
+      (src/validation/walk_forward.py::schedule_from_eval, ADR-042) never
+      reads it -- it derives the schedule from eval.walk_forward.{train,test,val}
+      and eval.date_range, and reports the resulting count as an OUTPUT.
+      src/search/walk_forward_calendar.py no longer exists; that module moved
+      to src/validation/walk_forward.py. The 2026-09 enumeration of 54
+      folds.json was taken while those runs lived under data/research/custom_test
+      (that directory is gone; the runs are under research/runs):
+      n_folds is 3 in 38 runs, 6 in 12, 4 in 1, and 1 in 3 runs
+      (nq-50pt-econ 2026-08-22). The three single-fold runs used
+      expanding_calendar and therefore had NO walk-forward validation --
+      one train/test split -- while their objective doc declared
+      walk_forward_folds: 3. Not root-caused further.
+    tracking_doc: docs/CONFIG_AUDIT.md
+    supersedes_note: >
+      Replaces a retracted finding ("nq-50pt-econ-walk-forward-folds-discrepancy")
+      that claimed n_folds=1 in EVERY run (false: 3 of 54), and a subsequent
+      over-correction claiming n_folds is NEVER 1 (also false). Only the full
+      54-file enumeration recorded above is reliable.
+
+independent_experiments:
+  nq-selective-intraday:
+    reviewed: "2026-09-24"
+    status: EXPERIMENTAL
+    result: REJECTED_DEVELOPMENT_GATE
+    run: research/runs/nq-selective-intraday/20260924T033352Z
+    evidence: docs/research/NQ_SELECTIVE_RESULTS.md
+    holdout: "2026-07-01 through 2026-09-22; unconsulted by this experiment"
+    serving: NOT_WIRED

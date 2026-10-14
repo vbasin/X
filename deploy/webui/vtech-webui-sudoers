@@ -1,0 +1,16 @@
+# Sudoers drop-in for the VTech web console (install as /etc/sudoers.d/vtech-webui,
+# mode 0440, then `visudo -c` to verify).
+#
+# Grants the console's service user passwordless control over EXACTLY the
+# Research Director schedule units — nothing else. The console calls
+# `sudo -n systemctl <enable|disable|start|stop> --now vtech-research-director.timer`
+# when the operator toggles the "model optimization" schedule from the UI.
+#
+# Ubuntu 22.04 note: keep each command form on its own line; wildcards are
+# intentionally NOT used anywhere in the command arguments.
+
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl enable --now vtech-research-director.timer
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl disable --now vtech-research-director.timer
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl start vtech-research-director.timer
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl stop vtech-research-director.timer
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl start vtech-research-director.service

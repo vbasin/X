@@ -1,0 +1,38 @@
+# Autonomous iterate-until-target spec — example.
+#
+# Run with:
+#   python -m src.search.iterate --spec config/iterate_spec.example.yaml
+#   python -m src.search.iterate --spec config/iterate_spec.example.yaml --dry-run
+#
+# Holds the model family FIXED (xgboost here) and searches its hyperparameters + feature
+# selection until the objective's kpi.target is met, or the budget runs out. The objective
+# (nq-50pt) still owns labels/KPI/target. Validates against config/iterate_spec.schema.json.
+
+schema_version: v1
+objective_id: nq-50pt
+
+candidate:
+  id: xgb_tuned
+  family: xgboost                    # fixed for the whole loop
+  params:                            # baseline params; sampled search-space values merge over these
+    class_balance: sqrt
+    dir_threshold: 0.5
+
+# Hyperparameters to search. Omit this block to use xgboost's catalog search_space.
+search_space:
+  n_estimators:     {type: int,   low: 150, high: 500, step: 50}
+  max_depth:        {type: int,   low: 4,   high: 12}
+  learning_rate:    {type: float, low: 0.01, high: 0.20, log: true}
+  subsample:        {type: float, low: 0.6, high: 1.0}
+  dir_threshold:    {type: float, low: 0.30, high: 0.60}
+
+# Feature selections the loop may pick among (categorical). Omit to keep features fixed.
+feature_choices:
+  - {view: sequence_baseline}
+  - {prefixes: ["vw_", "rv_", "dc_", "ht_"]}
+  - {prefixes: ["bp_", "of_", "vp_", "vw_"]}
+
+budget:
+  max_trials: 40                     # stop after 40 iterations if the target isn't met sooner
+  time_budget_min: 120               # ...or after 2 hours
+  cost_budget_usd: 10.0              # ...or when the estimated GPU spend hits $10

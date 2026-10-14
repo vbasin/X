@@ -1,0 +1,14 @@
+[Unit]
+Description=VTech PostgreSQL Backup Timer (daily 03:00 UTC)
+
+[Timer]
+# Daily at 03:00 UTC — offset from oci-sync (02:00 UTC) to avoid I/O overlap
+OnCalendar=*-*-* 03:00:00 UTC
+# Re-run immediately if the last scheduled execution was missed (e.g. VM was off)
+Persistent=true
+# Spread start time by up to 5 minutes to avoid exact-second thundering herd
+RandomizedDelaySec=300
+Unit=vtech-pg-backup.service
+
+[Install]
+WantedBy=timers.target

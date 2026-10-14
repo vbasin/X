@@ -1,0 +1,30 @@
+date_range:
+  start: '2025-05-01'
+  end: '2026-06-30'
+walk_forward_folds: 1
+walk_forward:
+  mode: expanding_calendar
+  train:
+    n: 12
+    unit: months
+  test:
+    n: 2
+    unit: months
+  purge_bars: 120
+  purge_seconds: 600
+  val:
+    enabled: false
+    n: 10
+    unit: days
+    cut_from: train
+  schedule:
+  - fold: 0
+    split: expanding_calendar
+    train:
+      start: '2025-05-01'
+      end: '2026-04-30'
+    oof:
+      start: '2026-05-01'
+      end: '2026-06-30'
+    val: null
+    clipped: false

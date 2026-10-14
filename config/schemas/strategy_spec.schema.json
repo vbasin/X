@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "StrategySpec",
+  "description": "USER-DEFINED rule-based trading strategy for the backtest engine (src/backtest/). The user types the strategy out as declarative feature conditions & interactions (e.g. 'vw_vwap_dist < -20 AND of_delta crosses above 0 -> long') OR as a calendar cadence (daily/weekly/monthly entry + settle rules). The referenced Trade Objective still owns labels/KPI/costs defaults so strategies are scored on the SAME frozen evaluation contract as ML model candidates. Conditions are structured data evaluated by src/backtest/rules.py — never free-form code (no eval).",
+  "type": "object",
+  "required": ["strategy_id"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Strategy-spec schema generation, e.g. 'v1'."
+    },
+    "strategy_id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9_.-]+$",
+      "description": "Unique strategy id — used for leaderboard rows, trade-ledger and episode filenames."
+    },
+    "objective_id": {
+      "type": "string",
+      "description": "Optional cross-check + defaults source. If present it MUST equal the objective the backtest runs against (loader raises otherwise). The objective supplies labels (for signal-quality KPI), session window, and cost defaults."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human description of the strategy thesis."
+    },
+    "entry": {
+      "type": "object",
+      "description": "Feature-rule entry mode: per-side rule blocks. At least one side required. Mutually exclusive with `schedule`.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "long":  {"$ref": "#/$defs/rule_block"},
+        "short": {"$ref": "#/$defs/rule_block"}
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "description": "Calendar-cadence entry mode (standard daily/weekly/monthly buying + settling rules). Mutually exclusive with `entry`.",
+      "required": ["frequency", "side"],
+      "additionalProperties": false,
+      "properties": {
+        "frequency": {"enum": ["daily", "weekly", "monthly"]},
+        "entry_time": {
+          "type": "string",
+          "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "Session-local entry time HH:MM (exchange timezone, e.g. America/Chicago). Default: first bar of the session."
+        },
+        "day_of_week": {
+          "enum": ["MON", "TUE", "WED", "THU", "FRI"],
+          "description": "Weekly mode: which weekday to enter (skips to the next available trading day if missing)."
+        },
+        "day_of_month": {
+          "description": "Monthly mode: 'first' / 'last' trading day of the month, or a calendar day 1-28 (rolls forward to the next trading day).",
+          "oneOf": [
+            {"enum": ["first", "last"]},
+            {"type": "integer", "minimum": 1, "maximum": 28}
+          ]
+        },
+        "side": {"enum": ["long", "short"]},
+        "settle": {
+          "type": "object",
+          "description": "How the scheduled position is settled (closed). Default: {mode: eod}.",
+          "required": ["mode"],
+          "additionalProperties": false,
+          "properties": {
+            "mode": {
+              "enum": ["eod", "hold_bars", "hold_days", "next_entry"],
+              "description": "eod = flat at session close same day; hold_bars = exit after N bars; hold_days = exit at session close N trading days later; next_entry = hold until the next scheduled entry (rebalance-style)."
+            },
+            "bars": {"type": "integer", "minimum": 1, "description": "hold_bars: number of 5s bars to hold."},
+            "days": {"type": "integer", "minimum": 1, "description": "hold_days: number of trading days to hold."}
+          }
+        }
+      }
+    },
+    "predictions": {
+      "type": "object",
+      "description": "Model-prediction entry mode: replay a trained model's OOF/prediction frame as entry signals, gated by confidence. Mutually exclusive with entry|schedule. Exit target/stop/max_holding default to the referenced objective's barriers (move_threshold / mae_tolerance / max_trade_horizon) when omitted. One position at a time is always enforced by the engine — 'max 1 position held' needs no extra knob.",
+      "required": ["source"],
+      "additionalProperties": false,
+      "properties": {
+        "source": {"type": "string", "minLength": 1, "description": "An oof_*.parquet path, a run directory containing exactly one, or a run id under data/search/<objective>/. Frame columns: ts, direction (up/down/flat), confidence [0,1], optional direction_true."},
+        "tau": {"type": "number", "minimum": 0, "maximum": 1, "default": 0.8, "description": "Confidence gate: only bars with confidence >= tau become entry candidates. Ignored when confidence_gate is false."},
+        "confidence_gate": {"type": "boolean", "default": true, "description": "When false, directional predictions enter regardless of confidence (tau is recorded but not applied). Default true."},
+        "sides": {"type": "array", "items": {"enum": ["up", "down"]}, "minItems": 1, "uniqueItems": true, "description": "Which predicted directions to trade. Default: both (up and down)."}
+      }
+    },
+    "filters": {
+      "$ref": "#/$defs/rule_block",
+      "description": "Optional global gate applied to BOTH sides (and to scheduled/prediction entries): entries are only taken on bars where this block is true (e.g. regime / time-of-day filters)."
+    },
+    "exit": {
+      "type": "object",
+      "description": "Exit rules for rule-mode entries (schedule mode uses `settle`, but target/stop still apply if set here).",
+      "additionalProperties": false,
+      "properties": {
+        "target_points": {"type": "number", "exclusiveMinimum": 0, "description": "Profit target in points from entry."},
+        "stop_points": {"type": "number", "exclusiveMinimum": 0, "description": "Stop loss in points from entry. Same-bar conflicts resolve stop-first (conservative)."},
+        "max_holding": {"type": "string", "pattern": "^[0-9]+[smh]$", "description": "Max holding duration, e.g. '10m', '90s', '2h'. Exit at bar close when reached."},
+        "eod_flat": {"type": "boolean", "default": true, "description": "Force-close any open position at the last bar of each session (no overnight risk). Default true for rule mode."},
+        "rules": {
+          "type": "object",
+          "description": "Optional rule-based exits per side, evaluated bar-by-bar while in a position.",
+          "additionalProperties": false,
+          "properties": {
+            "long":  {"$ref": "#/$defs/rule_block"},
+            "short": {"$ref": "#/$defs/rule_block"}
+          }
+        }
+      }
+    },
+    "backtest": {
+      "type": "object",
+      "description": "Backtest window + execution knobs — the user's date-range/interface block. CLI --start/--end override start/end.",
+      "additionalProperties": false,
+      "properties": {
+        "start": {"type": "string", "format": "date", "description": "Inclusive first trade date (YYYY-MM-DD). Default: earliest available parquet."},
+        "end": {"type": "string", "format": "date", "description": "Inclusive last trade date (YYYY-MM-DD). Default: latest available parquet."},
+        "holdout_start": {"type": "string", "format": "date", "description": "Optional in-sample/out-of-sample split: trades entered on/after this date are reported separately (guards against curve-fitting when iterating on rules)."},
+        "cooldown_bars": {"type": "integer", "minimum": 0, "default": 0, "description": "Bars to wait after a trade closes before a new entry is allowed."},
+        "point_value": {"type": "number", "exclusiveMinimum": 0, "default": 1.0, "description": "Currency value of one point (e.g. 20 for NQ USD). Default 1.0 = report PnL in points."},
+        "max_trades_per_day": {"type": "integer", "minimum": 0, "default": 0, "description": "Cap on entries per session; 0 = unlimited."},
+        "max_concurrent_positions": {"type": "integer", "minimum": 1, "default": 1, "description": "Max positions open simultaneously (default 1 = one-at-a-time). A new entry is skipped only when all slots are full at its bar; each position exits independently."}
+      }
+    },
+    "costs": {
+      "type": "object",
+      "description": "Execution frictions. Defaults fall back to the objective's `costs` block when omitted.",
+      "additionalProperties": false,
+      "properties": {
+        "cost_per_trade": {"type": "number", "minimum": 0, "description": "Round-trip commission/fees in points."},
+        "slippage_points": {"type": "number", "minimum": 0, "description": "Slippage applied per side (entry AND exit) in points."}
+      }
+    }
+  },
+  "oneOf": [
+    {"required": ["entry"],       "not": {"anyOf": [{"required": ["schedule"]}, {"required": ["predictions"]}]}},
+    {"required": ["schedule"],    "not": {"anyOf": [{"required": ["entry"]}, {"required": ["predictions"]}]}},
+    {"required": ["predictions"], "not": {"anyOf": [{"required": ["entry"]}, {"required": ["schedule"]}]}}
+  ],
+  "$defs": {
+    "rule_block": {
+      "type": "object",
+      "description": "Boolean combinator over conditions: exactly one of `all` (AND) / `any` (OR). Items may be conditions or nested blocks.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "maxProperties": 1,
+      "properties": {
+        "all": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"oneOf": [{"$ref": "#/$defs/condition"}, {"$ref": "#/$defs/rule_block"}]}
+        },
+        "any": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"oneOf": [{"$ref": "#/$defs/condition"}, {"$ref": "#/$defs/rule_block"}]}
+        }
+      }
+    },
+    "condition": {
+      "type": "object",
+      "description": "One comparison on a feature column. RHS is either a constant `value` or another feature (`feature_rhs`) for feature-interaction rules. `shift` compares against the LHS feature N bars ago is NOT supported — use cross_above/cross_below for prior-bar interactions.",
+      "required": ["feature", "op"],
+      "additionalProperties": false,
+      "properties": {
+        "feature": {"type": "string", "minLength": 1, "description": "Feature column name from the parquet matrix (see docs/reference/FEATURE_CATALOG.md)."},
+        "op": {
+          "enum": ["gt", "lt", "gte", "lte", "eq", "ne", "between", "cross_above", "cross_below", "abs_gt", "abs_lt"],
+          "description": "Comparison operator. cross_above/cross_below fire only on the bar where the feature crosses the threshold (feature >= rhs now AND feature < rhs on the prior bar, and vice versa)."
+        },
+        "value": {
+          "description": "Constant RHS. For `between`: [low, high] inclusive.",
+          "oneOf": [
+            {"type": "number"},
+            {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}
+          ]
+        },
+        "feature_rhs": {"type": "string", "minLength": 1, "description": "Feature-column RHS (feature-vs-feature interaction, e.g. of_volume_ma_60 > rv_realized_vol_60). Mutually exclusive with `value`."}
+      },
+      "oneOf": [
+        {"required": ["value"], "not": {"required": ["feature_rhs"]}},
+        {"required": ["feature_rhs"], "not": {"required": ["value"]}}
+      ]
+    }
+  }
+}

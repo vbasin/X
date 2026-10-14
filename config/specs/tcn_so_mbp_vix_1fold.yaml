@@ -1,0 +1,19 @@
+# Last-step TCN, 10 epochs, so_ + mbp_ + iv_vix_close. Same 1-fold as tcn_close.
+schema_version: v1
+objective_id: nq-50pt-econ
+ensembles: false
+candidates:
+- id: tcn_so_mbp_vix
+  family: tcn_close
+  max_rows: 100000
+  params:
+    epochs: 10
+    batch_size: 256
+    seq_len: 128
+    class_balance: sqrt
+    pooling: last
+  features:
+    prefixes:
+    - so_
+    - mbp_
+    - iv_vix_close

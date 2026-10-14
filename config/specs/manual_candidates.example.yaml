@@ -1,0 +1,52 @@
+# USER-OVERRIDE candidate set (manual mode) — example.
+#
+# Run with:
+#   python -m src.search.controller --objective nq-50pt \
+#       --manual-spec config/manual_candidates.example.yaml
+#
+# This SKIPS the automated Model-Scout / catalog candidate proposal and fits ONLY the
+# models listed below. Labels, KPI, targets and the walk-forward/eval contract still come
+# from the Trade Objective (nq-50pt) — this file only decides WHICH models + features.
+#
+# Validates against config/manual_candidates.schema.json.
+
+schema_version: v1
+objective_id: nq-50pt        # optional cross-check; must match the --objective it runs with
+ensembles: false             # also stack/consensus the candidates' OOF? default: no
+
+candidates:
+  # 1) XGBoost on a curated named feature view.
+  - id: xgb_seqbase
+    family: xgboost
+    params:
+      n_estimators: 400
+      max_depth: 8
+      learning_rate: 0.05
+    features:
+      view: sequence_baseline          # a named view from src/models/feature_views.py
+
+  # 2) A second XGBoost config (needs a distinct `id`) on an explicit prefix set.
+  - id: xgb_microstructure
+    family: xgboost
+    params:
+      n_estimators: 300
+      max_depth: 6
+    features:
+      prefixes: ["bp_", "of_", "vp_"]  # keep only order-flow / book-pressure / vol-profile
+
+  # 3) LightGBM on an exact hand-picked column list.
+  - id: lgbm_handpicked
+    family: lightgbm
+    params:
+      num_leaves: 63
+      n_estimators: 350
+    features:
+      columns: ["vw_dist_bps", "rv_5m", "ht_atr_regime", "dc_pivot_dist"]
+
+  # 4) Full-matrix baseline — omit `features` to use every engineered column, and
+  #    omit `max_rows` to train on ALL rows (no search sub-sample cap).
+  - id: rf_full
+    family: random_forest
+    params:
+      n_estimators: 400
+      max_depth: 12

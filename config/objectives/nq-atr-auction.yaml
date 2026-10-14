@@ -1,0 +1,86 @@
+# Preliminary ATR-pop + auction-structure objective. Not a live pin.
+# 10-minute first-touch: +2.5× ATR_10m vs −1.5× ATR_10m, onset bars only.
+# Features: existing 5s of_/vf_/vp_/vw_ plus causal au_* from 5s+1m hive.
+#
+# python -m src.search.controller --objective nq-atr-auction --no-ensemble \
+#     --experiment-type custom_test --families xgboost,attention_lstm
+
+objective_id: "nq-atr-auction"
+schema_version: "v2"
+
+description: >
+  Capture a 10-minute directional pop sized in ATR, not a fixed 50/6 point
+  lottery. First-touch +2.5× cs_atr_10m before −1.5× cs_atr_10m, labelled
+  only on the first bar of each run. Auction structure (IB, overnight high/low,
+  VWAP reclaim, OFI/delta/footprint at those prices) plus existing 5s flow.
+
+traded products:
+  - symbol: NQ
+    security_type: futures
+    asset_class: equity_futures
+    role: primary
+    note: "CME E-mini Nasdaq-100 futures, lead-month via CME roll calendar (NQ.c.0)."
+
+strategy_keywords: [momentum, intraday, directional, triple_barrier, atr, auction, dual_binary]
+
+horizon:
+  max_trade_horizon: "10m"
+  holding_max: intraday
+
+session:
+  training_start: "08:30"
+  training_end: "11:00"
+  trading_start: "08:30"
+  trading_end: "11:00"
+  timezone: America/Chicago
+
+labels:
+  scheme: triple_barrier_atr
+  encoding: dual_binary
+  move_threshold: 2.5
+  mae_tolerance: 1.5
+  unit: atr
+  atr_feature: cs_atr_10m
+  onset_only: true
+  min_target_pts: 12
+  min_stop_pts: 8
+  fire: 0.40
+
+costs:
+  cost_per_trade: 0
+  slippage_model: fixed_1pt
+
+kpi:
+  primary: net_expectancy
+  requirement:
+    all:
+      - {metric: n_signals, min: 30}
+  target:
+    all:
+      - {metric: n_signals, min: 30}
+
+eligible_model_families:
+  - xgboost
+  - attention_lstm
+  - lstm
+
+search:
+  tune_trials: 0
+  default_feature_view: auction_pop
+  feature_views:
+    xgboost: auction_pop
+    attention_lstm: auction_pop
+  topology:
+    mode: single
+
+eval:
+  date_range:
+    start: "2025-05-01"
+    end: "2026-06-30"
+  walk_forward_folds: 3
+  walk_forward:
+    mode: expanding_calendar
+    train: {n: 4, unit: months}
+    test: {n: 4, unit: months}
+    purge_bars: 120
+    purge_seconds: 600

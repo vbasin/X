@@ -1,0 +1,12 @@
+[Unit]
+Description=Stop VTech live streamer at CME Friday close (4pm CT)
+Documentation=file:///opt/vtech/systemd/vtech-live-streamer.service
+
+[Timer]
+OnCalendar=Fri *-*-* 16:00:00 America/Chicago
+Persistent=true
+AccuracySec=1min
+Unit=vtech-live-streamer-stop.service
+
+[Install]
+WantedBy=timers.target

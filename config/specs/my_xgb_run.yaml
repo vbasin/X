@@ -1,0 +1,110 @@
+# USER-OVERRIDE spec — XGBoost with hand-picked features (2026-07-03)
+#
+# Run with:
+#   python -m src.search.controller --objective nq-50pt \
+#       --manual-spec config/my_xgb_run.yaml
+#
+# Safe dry-run first (validates wiring, no training, no GPU):
+#   env -u GPU_INSTANCE_OCID python -m src.search.controller \
+#       --objective nq-50pt --manual-spec config/my_xgb_run.yaml \
+#       --dry-run --no-ensemble
+#
+# GPU note: GPU_INSTANCE_OCID is set in .env, so a real run dispatches to (and
+# starts) the billable A10. XGBoost is a CPU family — run without the GPU VM by:
+#   env -u GPU_INSTANCE_OCID python -m src.search.controller \
+#       --objective nq-50pt --manual-spec config/my_xgb_run.yaml --no-ensemble
+#
+# ----- MISSING FEATURES (not in current parquets) -----
+#   iv_0dte_atm, iv_1dte_atm, iv_term_slope, iv_atm_chg_6
+#     → options_surface.py produces these but the current parquets were built
+#       without the iv_ group. Rebuild parquets to include them.
+#   iv_vix_close
+#     → Does not exist in any feature module. VIX data not ingested.
+#   gx_dealer_gex
+#     → dealer_gex.py produces this but gx_ group not in current parquets.
+#       Rebuild parquets to include it.
+#   cs_range_ma_200
+#     → Does not exist (closest: cs_range_ma_120, which is included below).
+#
+# ----- MAPPED / DISAMBIGUATED -----
+#   "Current bar volume"           → of_delta  (per-bar net buy-sell volume)
+#   "5-minute volume moving average" → of_volume_ma_60  (60 bars × 5s = 5 min)
+#   "VPIN"                         → ms_vpin
+#   "ms vpin zscore"               → ms_vpin_zscore_60
+
+schema_version: v1
+objective_id: nq-50pt
+ensembles: false
+
+candidates:
+  - id: xgb_custom
+    family: xgboost
+    params:
+      n_estimators: 600
+      max_depth: 12
+      learning_rate: 0.03
+      subsample: 0.8
+      colsample_bytree: 0.8
+      class_balance: balanced
+      dir_threshold: 0.50          # tighten back up now that model fires more aggressively
+    features:
+      columns:
+        # ── Order flow / cumulative volume delta ──────────────────────────────
+        - lt_cvd
+        - lt_cvd_chg_120
+        - lt_cvd_divergence
+        # ── VWAP ──────────────────────────────────────────────────────────────
+        - vw_vwap_dist
+        # ── Order flow (short-horizon) ────────────────────────────────────────
+        - of_cvd_price_divergence
+        - of_delta                 # "Current bar volume" (per-bar net volume)
+        - of_volume_ma_60          # "5-minute volume moving average"
+        - of_volume_ratio
+        # ── Trade location ────────────────────────────────────────────────────
+        - tl_trade_location
+        # ── Arrival rate / trade intensity ────────────────────────────────────
+        - ta_arrival_rate
+        - ta_arrival_accel
+        # ── Market microstructure (VPIN + Kyle lambda + Amihud) ───────────────
+        - ms_vpin                  # VPIN
+        - ms_vpin_zscore_60        # "ms vpin zscore"
+        # ── Realized volatility ───────────────────────────────────────────────
+        - rv_realized_vol_60
+        - rv_vol_of_vol_120
+        - rv_vol_ratio
+        # ── Supply/demand flow ────────────────────────────────────────────────
+        - sd_imbalance_trajectory
+        - sd_bid_sz_delta
+        - sd_ask_sz_delta
+        - sd_tick_count
+        # ── Volume profile ────────────────────────────────────────────────────
+        - vp_poc_dist
+        - vp_va_high_dist
+        - vp_va_low_dist
+        - vp_in_value_area
+        - vp_poc_slope
+        # ── Candle structure / range ──────────────────────────────────────────
+        - cs_range_ma_12
+        - cs_range_ma_60
+        - cs_range_ma_120          # closest available to cs_range_ma_200
+        # ── Implied volatility surface ────────────────────────────────────────
+        # NOTE: 14 early-April 2025 dates (pre options-rebuild) will have 0.0
+        #       for these columns (NaN→0 fill in fold builder) — acceptable.
+        - iv_0dte_atm
+        - iv_1dte_atm
+        - iv_term_slope
+        - iv_atm_chg_6
+        - iv_atm_mean
+        - iv_skew
+        # ── Dealer GEX ────────────────────────────────────────────────────────
+        - gx_dealer_gex
+        - gx_gex_flip_dist
+        - tc_block_premkt_30m
+        - tc_block_open_5m
+        - tc_block_open_30m
+        - tc_block_9am_60m
+        - tc_block_10am_60m
+        - tc_block_11am_60m
+        - tc_block_12pm_60m
+        - tc_block_1pm_60m
+        - tc_block_2pm_60m

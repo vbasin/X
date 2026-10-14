@@ -1,0 +1,12 @@
+[Unit]
+Description=VTech Research Director Timer (every 6h; offset from oci-sync/pg-backup windows)
+
+[Timer]
+# 00:30 / 06:30 / 12:30 / 18:30 UTC — avoids 02:00 OCI sync and 03:00 pg-backup.
+OnCalendar=*-*-* 00,06,12,18:30:00 UTC
+Persistent=true
+RandomizedDelaySec=600
+Unit=vtech-research-director.service
+
+[Install]
+WantedBy=timers.target

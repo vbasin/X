@@ -1,0 +1,18 @@
+[Unit]
+Description=VTech OCI Object Storage Sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+Environment=PATH=/home/ubuntu/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/bin/bash /opt/vtech/scripts/ops/sync_to_oci.sh
+StandardOutput=append:/opt/vtech/logs/oci-sync.log
+StandardError=append:/opt/vtech/logs/oci-sync.err
+
+[Install]
+WantedBy=multi-user.target

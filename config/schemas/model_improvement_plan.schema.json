@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ModelImprovementPlan",
+  "description": "The Research Director's deliverable: a critic-hardened, prioritized set of changes to an EXISTING model, derived from diagnosing the patterns in its results. Each change targets a named failure mode with tier-tagged evidence and an expected effect on a specific metric. The single `top_recommendation` is auto-validated (trained+scored vs the baseline) when it is expressible as a training run; broader changes (new-data acquisition, new model code) carry a `validation_method` and hand off. 'RD proposes, the search controller + the human dispose.'",
+  "type": "object",
+  "required": ["objective_id", "program_id", "generated_at", "dominant_failure_modes", "changes", "top_recommendation"],
+  "additionalProperties": false,
+  "properties": {
+    "objective_id": {"type": "string", "minLength": 1},
+    "program_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string"},
+    "run_ts": {"type": "string"},
+
+    "dominant_failure_modes": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Where the existing model underperforms, each anchored to a specific result artifact (a confusion-matrix cell, a per-class F1, a mined outcome pattern, an integrated-gradients finding).",
+      "items": {
+        "type": "object",
+        "required": ["summary", "evidence"],
+        "additionalProperties": false,
+        "properties": {
+          "summary": {"type": "string", "minLength": 1},
+          "metric_impact": {"type": "string", "description": "How this failure mode costs the binding objective metric."},
+          "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence_ref"}}
+        }
+      }
+    },
+
+    "changes": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/change"}},
+
+    "top_recommendation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The `id` of the single highest-leverage change — the one auto-validated in the validation stage (if auto_validatable) or flagged for priority handoff otherwise."
+    },
+    "reconciliation": {"type": ["string", "null"]},
+    "open_questions": {"type": "array", "items": {"type": "string"}},
+    "provenance": {"type": "object", "additionalProperties": true}
+  },
+
+  "$defs": {
+    "evidence_ref": {
+      "type": "object",
+      "required": ["tier", "source_ref"],
+      "additionalProperties": false,
+      "properties": {
+        "tier": {"enum": ["T1", "T2", "T3"], "description": "T3 proven-live > T2 internal-experimental (incl. THIS model's own results) > T1 external literature."},
+        "source_ref": {"type": "string", "minLength": 1, "description": "A publication id/URL, a training_result key path (e.g. 'confusion_matrix[BIG_UP->FLAT]', 'test_f1_per_class.FLAT'), an outcome-pattern id, an mlflow_run_id, or a journal ref."},
+        "note": {"type": "string"}
+      }
+    },
+
+    "change": {
+      "type": "object",
+      "required": ["id", "title", "scope", "targeted_failure_mode", "mechanism", "expected_effect", "evidence", "feasibility", "auto_validatable"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "title": {"type": "string", "minLength": 1},
+        "rank": {"type": "integer", "minimum": 1},
+        "scope": {
+          "enum": ["feature", "symbol", "overlay_model", "loss", "label", "hparam", "ensemble", "architecture", "acquisition"],
+          "description": "The KIND of change — arbitrary scope is allowed: a feature edit, adding a correlated symbol, an overlay/auxiliary model run in conjunction, a loss/penalty change, a label redesign, a hyperparameter regime, an ensemble, a new architecture, or a data acquisition."
+        },
+        "targeted_failure_mode": {"type": "string", "minLength": 1, "description": "Which dominant_failure_modes[].summary this change attacks."},
+        "mechanism": {"type": "string", "minLength": 1, "description": "WHY this change fixes the failure mode — the causal argument, not a restatement."},
+        "expected_effect": {
+          "type": "object",
+          "required": ["metric", "direction"],
+          "additionalProperties": false,
+          "properties": {
+            "metric": {"type": "string", "description": "e.g. precision_at_tau, test_f1_per_class.FLAT, directional_f1."},
+            "direction": {"enum": ["increase", "decrease"]},
+            "magnitude": {"type": "string", "description": "Quantified expectation, e.g. '+0.03 precision_at_tau', 'FLAT recall 0.30->0.55'."}
+          }
+        },
+        "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/evidence_ref"}},
+        "feasibility": {"type": "string", "minLength": 1, "description": "What it takes to implement — and why it is (or isn't) buildable/trainable today."},
+        "cost": {"type": "object", "additionalProperties": true, "description": "e.g. {est_gpu_hours, est_usd, needs_acquisition}."},
+        "auto_validatable": {"type": "boolean", "description": "True iff this change can be trained+scored today by the search controller over the objective's walk-forward folds (requires a catalog family). False for new-data acquisition or new model code."},
+        "executable_candidate": {"$ref": "#/$defs/executable_candidate"},
+        "validation_method": {"type": "string", "description": "REQUIRED when auto_validatable=false: how a human/downstream would validate (data acquisition + re-eval, code implementation + backtest, etc.)."}
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"auto_validatable": {"const": true}}},
+          "then": {"required": ["executable_candidate"]},
+          "else": {"required": ["validation_method"]}
+        }
+      ]
+    },
+
+    "executable_candidate": {
+      "description": "One candidate in ManualCandidatesSpec shape (config/manual_candidates.schema.json) — dropped straight into a manual_spec for the search controller with no translation. features MUST be exactly one of view | prefixes | columns (no extra keys).",
+      "type": "object",
+      "required": ["family"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "family": {"type": "string", "minLength": 1, "description": "A registered family in src/models/catalog.py."},
+        "params": {"type": "object", "additionalProperties": true},
+        "features": {"$ref": "#/$defs/feature_selection"},
+        "max_rows": {"type": ["integer", "null"]},
+        "ensembles": {"type": "boolean", "default": false, "description": "Set true only when scope is ensemble/overlay_model and the Stage-2 ensemble layer should run."}
+      }
+    },
+
+    "feature_selection": {
+      "type": "object",
+      "description": "Exactly ONE of view / prefixes / columns — mirrors config/schemas/manual_candidates.schema.json. Extra keys (context_view, note, meta_inputs, …) are invalid.",
+      "oneOf": [
+        {
+          "required": ["view"],
+          "additionalProperties": false,
+          "properties": {
+            "view": {"type": "string", "minLength": 1, "description": "Named curated view from src/models/feature_views.py (e.g. 'momentum_edge', 'regime_core')."}
+          }
+        },
+        {
+          "required": ["prefixes"],
+          "additionalProperties": false,
+          "properties": {
+            "prefixes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 1},
+              "description": "Keep columns whose names start with any of these prefixes (e.g. ['vw_', 'rv_', 'of_'])."
+            }
+          }
+        },
+        {
+          "required": ["columns"],
+          "additionalProperties": false,
+          "properties": {
+            "columns": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "string", "minLength": 1},
+              "description": "Exact feature column names only — not group prefixes."
+            }
+          }
+        }
+      ]
+    }
+  }
+}

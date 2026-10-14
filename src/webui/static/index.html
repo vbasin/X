@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VTech Console · bt-params</title>
+<link rel="stylesheet" href="/style.css?v=20261001-mbo-render">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='80' font-size='80'>&#9650;</text></svg>">
+</head>
+<body>
+<div id="shell">
+  <div id="main">
+    <header id="topbar">
+      <nav id="sidebar" aria-label="VTech console">
+        <a href="#/dashboard" data-nav="dashboard">◈ Dashboard</a>
+        <a href="#/objectives" data-nav="objectives">◎ Objectives</a>
+        <a href="#/scoping" data-nav="scoping">⌕ Scoping</a>
+        <a href="#/optimize" data-nav="optimize">⚙ Optimization</a>
+        <a href="#/external" data-nav="external">⧉ External Models</a>
+        <a href="#/backtest" data-nav="backtest">$ Backtest</a>
+        <a href="#/live" data-nav="live">◉ Live</a>
+        <a href="#/chart" data-nav="chart">▦ Live Chart</a>
+        <a href="#/notes" data-nav="notes">✎ Notes</a>
+        <a href="#/jobs" data-nav="jobs">≡ Jobs</a>
+      </nav>
+      <div class="topbar-end">
+        <a id="mlflow-link" href="http://127.0.0.1:5000" target="_blank" rel="noopener">↗ MLflow</a>
+        <div id="clock"></div>
+      </div>
+    </header>
+    <main id="view" aria-live="polite"></main>
+  </div>
+</div>
+<div id="toast-stack"></div>
+<script src="/lc_tags.js?v=20260926-lc-topnav"></script>
+<script src="/lc_orders.js?v=20261001-mbo-render"></script>
+<script src="/app.js?v=20260930-select-box"></script>
+</body>
+</html>

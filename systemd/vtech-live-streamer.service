@@ -1,0 +1,28 @@
+[Unit]
+Description=VTech Databento Live Streamer
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+# Do not give up after a handful of Postgres-down crashes (that skipped 2026-08-25).
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/vtech
+EnvironmentFile=/opt/vtech/.env
+Environment=PYTHONPATH=/opt/vtech
+ExecStart=/opt/vtech/venv/bin/python -m src.acquisition.live_streamer
+# on-failure: a clean weekend skip (exit 0) stays down until Sunday 17:00 CT
+# or a weekday boot. Restart=always would bounce the skip and write weekend files.
+Restart=on-failure
+RestartSec=15
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=vtech-live-streamer
+# Fraction of *this host's* RAM at boot — not a GB figure from a previous shape.
+# 8% of 47 GB ≈ 3.8 GB; of 8 GB ≈ 0.6 GB. See ADR-060.
+MemoryMax=8%
+
+[Install]
+WantedBy=multi-user.target

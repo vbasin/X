@@ -1,0 +1,17 @@
+[Unit]
+Description=VTech MBO incremental pull (every 30 min, CME session hours)
+Documentation=file:///opt/vtech/scripts/ops/mbo_incremental_pull.py
+
+[Timer]
+# Every 30 min, unconditionally -- the script itself checks cme_weekend_closed() (same check
+# src.acquisition.live_streamer uses) and exits 0 immediately outside Sun 5pm CT - Fri 4pm CT.
+OnCalendar=*-*-* *:00,30:00
+# A run missed while the VM was down (or during the CME daily maintenance halt) is caught up on
+# the next tick -- the checkpoint is read fresh from databento.mbo each run, so it just pulls a
+# larger delta once, same as any other gap.
+Persistent=true
+AccuracySec=1min
+Unit=vtech-mbo-incremental.service
+
+[Install]
+WantedBy=timers.target

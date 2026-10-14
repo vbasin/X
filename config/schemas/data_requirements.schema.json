@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DataRequirementsSpec",
+  "description": "Phase 23 / Stage 0 output of the Strategy Research Agent (Duty 1). Enumerates the full scope of data a trade objective implies, ranked by significance, for the deterministic gap-check vs the DB inventory and the human acquire/proceed gate. Read-only research produces this; it NEVER triggers a data download.",
+  "type": "object",
+  "required": ["objective_id", "traits", "data_classes"],
+  "properties": {
+    "objective_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ID of the Trade Objective this scope was derived for (top of the provenance chain)."
+    },
+    "generated_at": {
+      "type": "string",
+      "description": "ISO-8601 UTC timestamp when the spec was produced."
+    },
+    "git_sha": {
+      "type": "string",
+      "description": "Short git SHA of the codebase state at generation time."
+    },
+    "traits": {
+      "type": "object",
+      "description": "Objective traits used to key this spec for warm-start reuse on similar future objectives.",
+      "required": ["asset_class", "strategy_type", "horizon_bucket"],
+      "properties": {
+        "asset_class": {"type": "string", "description": "e.g. index_futures, equities, fx, crypto."},
+        "strategy_type": {"type": "string", "description": "e.g. momentum, mean_reversion, scalping, swing, long_short, risk_neutral."},
+        "horizon_bucket": {"type": "string", "description": "e.g. sub_10min, intraday, sub_2w, sub_6m."}
+      },
+      "additionalProperties": true
+    },
+    "data_classes": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The enumerated data classes the strategy implies, each ranked and justified.",
+      "items": {
+        "type": "object",
+        "required": ["name", "category", "significance", "required", "rationale"],
+        "properties": {
+          "name": {"type": "string", "minLength": 1, "description": "Human-readable name, e.g. 'NQ L1/L2 order book'."},
+          "category": {
+            "type": "string",
+            "enum": [
+              "primary_microstructure",
+              "aggregated_price",
+              "related_cross_asset",
+              "derivatives_positioning",
+              "macro_government",
+              "other"
+            ],
+            "description": "Top-level data-scope category."
+          },
+          "instruments": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Concrete symbols / datasets, e.g. ['NQ.FUT', 'ES.FUT']."
+          },
+          "fields": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Required fields / schemas, e.g. ['bid_px', 'ask_px', 'bid_sz', 'ask_sz']."
+          },
+          "granularity": {"type": "string", "description": "Required resolution, e.g. 'tick', '1s', '1m', 'daily'."},
+          "history_depth": {"type": "string", "description": "Required history span, e.g. '3y', '15y'."},
+          "significance": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low"],
+            "description": "Priority of this data class for the objective."
+          },
+          "required": {
+            "type": "boolean",
+            "description": "true = the model run is invalid without it; false = nice-to-have. Drives the acquire-vs-proceed decision."
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why this data matters — must cite an anchor (research_cases id, scored publication id, or tool result)."
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "IDs into the Scored Research Library that justify this data class (esp. novel data/feature ideas)."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "research_library_ref": {
+      "type": "string",
+      "description": "Path/URI of the companion Scored Research Library artifact (research_library.schema.json) produced in the same run."
+    }
+  },
+  "additionalProperties": false
+}

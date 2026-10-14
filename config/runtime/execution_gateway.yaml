@@ -1,0 +1,30 @@
+schema_version: v1
+
+# Fail closed. Enabling this file starts no service by itself.
+enabled: false
+mode: SIM
+account: Sim101
+objectives: [nq-50pt-econ]
+
+# Must exactly match the NinjaTrader chart/strategy instrument before enabling,
+# for example "NQ 09-26". Blank is rejected when enabled=true.
+ninja_instrument: ""
+quantity: 1
+entry_order_type: MARKET
+
+# Bridge v1 deliberately allows one broker position at a time.
+max_positions: 1
+max_orders_per_session: 10
+max_daily_loss_usd: 500
+
+signal_ttl_s: 45
+heartbeat_stale_s: 30
+command_ttl_s: 20
+poll_s: 0.25
+
+# Defaults resolve under $VTECH_DATA_DIR/ops/execution. Set
+# VTECH_EXECUTION_BRIDGE_DIR=/mnt/vtech-execution for an SMB-mounted share.
+bridge_dir: null
+state_dir: null
+signal_path: null
+heartbeat_path: null
