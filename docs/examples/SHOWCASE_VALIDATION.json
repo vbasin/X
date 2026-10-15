@@ -1,0 +1,230 @@
+{
+  "date": "2026-10-15",
+  "base_commit": "4e498b14ed58764267818d348a108bf083d8cb11",
+  "environment": "Linux aarch64, Python 3.12, clean isolated venv",
+  "scoped_tests": {
+    "showcase_with_scope_consistency": 40,
+    "workflow": 164,
+    "publication_with_shared_contracts": 126
+  },
+  "browser": {
+    "passed": true,
+    "console_url": "http://127.0.0.1:8870",
+    "mlflow_url": "http://127.0.0.1:5500",
+    "console": {
+      "tabs": [
+        "dashboard",
+        "data",
+        "models",
+        "backtest",
+        "evaluation",
+        "artifacts",
+        "live"
+      ],
+      "dataset_rows": 3000,
+      "validation_rows": 435,
+      "holdout_rows": 289,
+      "ledger_rows": [
+        70,
+        75
+      ],
+      "gate_passes": {
+        "validation": 8,
+        "holdout": 8
+      },
+      "page_errors": [],
+      "external_requests": [],
+      "source_run_id": "20261015T032845Z_c77c70f8",
+      "mlflow": {
+        "artifact_root": "ops/mlflow_artifacts/b65c22da899d/artifacts",
+        "evidence_kind": "recorded_example",
+        "experiment_id": "1",
+        "imported_at": "2026-10-15T04:24:49.742723+00:00",
+        "parent_run_id": "3c242149c4a249209d06879b0d9dc5bd",
+        "registered_locally": false,
+        "run_id_map": {
+          "1aaf47dfd7454e5fa96fcad14f7b68d4": "3c242149c4a249209d06879b0d9dc5bd",
+          "82aef6acdbde4d0d88c9b6d84c260173": "0c45ed5b96194b869a81159ca38090ac",
+          "ea6e7731d0b143539c746cc92a78ae4c": "542e18f4445e411eba4e32fe41d764cc"
+        },
+        "source_parent_run_id": "1aaf47dfd7454e5fa96fcad14f7b68d4",
+        "source_registry": {
+          "alias": "test-serving",
+          "name": "workflow-test-transformer-20261015T032845Z_c77c70f8",
+          "version": "1"
+        },
+        "tracking_db": "ops/mlflow_artifacts/b65c22da899d/tracking.sqlite"
+      }
+    },
+    "mlflow": {
+      "experiment_id": "1",
+      "visible_run_names": [
+        "Recorded: 20261015T032845Z_c77c70f8",
+        "Recorded: transformer-depth-1",
+        "Recorded: transformer-depth-2"
+      ],
+      "matching_runs": 3,
+      "page_errors_diagnostic": []
+    },
+    "elapsed_seconds": 13.636
+  },
+  "launcher": {
+    "browser_returncode": 0,
+    "launcher_exit": 0,
+    "both_ports_closed_after_SIGTERM": {
+      "8870": true,
+      "5500": true
+    }
+  },
+  "native_weight_parity": {
+    "weight_sha256": "daed32f3d9c0c76390067245ce55e88b0bf44f786a02a03cb1d15b17f03983e3",
+    "rows": 289,
+    "max_abs_probability_error": 0.0,
+    "tolerance": 1e-06,
+    "package_source": "reviewed X source tree",
+    "original_operator_code_copied": false
+  },
+  "fresh_training": {
+    "run_id": "20261015T042710Z_f34f44d9",
+    "source_parent_run_id": "6f47318f304e421786baf43f815c0c21",
+    "supervisor_elapsed_seconds": 71.6,
+    "worker_elapsed_seconds": 66.8163249688223,
+    "status": "PASSED",
+    "scope": "synthetic_service_only",
+    "holdout": {
+      "baselines": {
+        "class_prior": {
+          "accuracy": 0.3494809688581315,
+          "log_loss": 1.0974711684780503,
+          "macro_f1": 0.17264957264957267
+        },
+        "sensor_persistence": {
+          "accuracy": 0.9342560553633218,
+          "log_loss": 0.25682154007745367,
+          "macro_f1": 0.9340808595880096
+        }
+      },
+      "checks": {
+        "accuracy": true,
+        "class_recall": true,
+        "macro_f1": true,
+        "maximum_log_loss": true,
+        "minimum_class_rows": true,
+        "minimum_rows": true,
+        "persistence_accuracy_noninferiority": true,
+        "prior_log_loss_improvement": true
+      },
+      "class_counts": [
+        98,
+        90,
+        101
+      ],
+      "metrics": {
+        "accuracy": 0.9342560553633218,
+        "class_recall": [
+          0.9591836734693877,
+          0.9444444444444444,
+          0.900990099009901
+        ],
+        "log_loss": 0.242029646786449,
+        "macro_f1": 0.9340808595880096,
+        "persistence_accuracy_difference": 0.0,
+        "prior_log_loss_improvement": 0.7794660545642483
+      },
+      "n_rows": 289,
+      "passed": true,
+      "policy": {
+        "max_log_loss": 0.6,
+        "max_runtime_seconds": 900,
+        "min_accuracy": 0.8,
+        "min_class_recall": 0.75,
+        "min_class_rows": 50,
+        "min_macro_f1": 0.8,
+        "min_prior_log_loss_improvement": 0.25,
+        "min_rows": 200,
+        "persistence_accuracy_margin": 0.05
+      },
+      "scope": "synthetic_classification_service_only"
+    },
+    "registry": {
+      "alias": "test-serving",
+      "name": "workflow-test-transformer-20261015T042710Z_f34f44d9",
+      "version": "1"
+    },
+    "source_dataset_sha256": "150a89b38646ce3e2d46baf55671ba75faf1e05488ac46faa67fcf536a0a47e8",
+    "post_promotion_serving": {
+      "alias_reload_verified": true,
+      "canonical_bundle_verified": true,
+      "probability_parity": true
+    }
+  },
+  "fresh_run_browser": {
+    "passed": true,
+    "console_url": "http://127.0.0.1:8870",
+    "mlflow_url": "http://127.0.0.1:5500",
+    "console": {
+      "tabs": [
+        "dashboard",
+        "data",
+        "models",
+        "backtest",
+        "evaluation",
+        "artifacts",
+        "live"
+      ],
+      "dataset_rows": 3000,
+      "validation_rows": 435,
+      "holdout_rows": 289,
+      "ledger_rows": [
+        70,
+        75
+      ],
+      "gate_passes": {
+        "validation": 8,
+        "holdout": 8
+      },
+      "page_errors": [],
+      "external_requests": [],
+      "source_run_id": "20261015T042710Z_f34f44d9",
+      "mlflow": {
+        "artifact_root": "ops/mlflow_artifacts/1dc2c8275561/artifacts",
+        "evidence_kind": "recorded_example",
+        "experiment_id": "1",
+        "imported_at": "2026-10-15T04:34:30.861529+00:00",
+        "parent_run_id": "469c039b199e4fa4b1754a2e6ad4d429",
+        "registered_locally": false,
+        "run_id_map": {
+          "0755a3a9897d4b8e8acd3b34fb24a7b4": "2545e2781c214d89b73d216a9f94fedf",
+          "6f47318f304e421786baf43f815c0c21": "469c039b199e4fa4b1754a2e6ad4d429",
+          "77200b09c4c64989872210b722284a2c": "6d161aeb6fd04a5887423fc441545f62"
+        },
+        "source_parent_run_id": "6f47318f304e421786baf43f815c0c21",
+        "source_registry": {
+          "alias": "test-serving",
+          "name": "workflow-test-transformer-20261015T042710Z_f34f44d9",
+          "version": "1"
+        },
+        "tracking_db": "ops/mlflow_artifacts/1dc2c8275561/tracking.sqlite"
+      }
+    },
+    "mlflow": {
+      "experiment_id": "1",
+      "visible_run_names": [
+        "Recorded: 20261015T042710Z_f34f44d9",
+        "Recorded: transformer-depth-1",
+        "Recorded: transformer-depth-2"
+      ],
+      "matching_runs": 3,
+      "page_errors_diagnostic": []
+    },
+    "elapsed_seconds": 13.424
+  },
+  "fresh_run_launcher": {
+    "browser_returncode": 0,
+    "launcher_exit": 0,
+    "both_ports_closed_after_SIGTERM": {
+      "8870": true,
+      "5500": true
+    }
+  }
+}

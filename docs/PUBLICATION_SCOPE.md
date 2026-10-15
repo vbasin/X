@@ -40,3 +40,16 @@ The runtime checkout is the preserved original for this copy-first release.
 There is no relocation, deletion, database migration, data rebuild, or change to
 the running platform. The destination's pre-existing file is outside the scope
 of the platform's copyright statement.
+
+
+## Narrow synthetic-fixture exception — 2026-10-15
+
+The public showcase additionally includes `examples/transformer-regime/`: the
+exact 3,000-row synthetic dataset, small native Transformer weights/scalers,
+saved predictions/ledgers, reviewed evidence projections and portable MLflow
+metadata. This exception does not include real market data, private trading
+models, operational SQLite databases, full operational code bundles or runtime
+stores. Original source evidence hashes and projection metadata are retained.
+The reviewed X source supplies code for fresh inference/training. Generated
+imports and reruns are ignored beneath `.demo-output/`. The original retained
+operator run remains unchanged. See [the walkthrough](examples/TRANSFORMER_WORKFLOW.md).

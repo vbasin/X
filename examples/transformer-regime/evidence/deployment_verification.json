@@ -1,0 +1,27 @@
+{
+  "artifact_download_reload": true,
+  "http": {
+    "direction_parity": true,
+    "elapsed_seconds": 10.055563759990036,
+    "inference_seconds": 0.5491308821365237,
+    "input_rows": 20,
+    "invalid_feature_status": 400,
+    "local_only": true,
+    "probability_parity": true,
+    "server_stopped": true,
+    "startup_seconds": 9.449431827990338,
+    "timestamp_parity": true,
+    "verified": true
+  },
+  "input_rows": 20,
+  "lifecycle": "EXPERIMENTAL",
+  "probability_parity": true,
+  "registry": {
+    "lifecycle": "EXPERIMENTAL",
+    "name": "workflow-test-transformer-20261015T032845Z_c77c70f8",
+    "run_id": "1aaf47dfd7454e5fa96fcad14f7b68d4",
+    "source": "[deployment location omitted; see source hash]",
+    "status": "READY",
+    "version": "1"
+  }
+}

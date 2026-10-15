@@ -70,6 +70,8 @@ def _snapshot(root: Path) -> set[str]:
 
 
 def pytest_configure(config: pytest.Config) -> None:
+    config.addinivalue_line("markers", "showcase: portable recorded Transformer WebUI and MLflow")
+    config.addinivalue_line("markers", "ml_workflow: bounded synthetic Transformer workflow")
     config.addinivalue_line(
         "markers", "publication: synthetic offline public release behavior",
     )

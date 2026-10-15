@@ -49,3 +49,6 @@ mlruns/
 /.demo-output/
 /.venv/
 /wheelhouse/
+
+# Local preserved originals; public fixtures use the explicit examples allowlist.
+/archive/

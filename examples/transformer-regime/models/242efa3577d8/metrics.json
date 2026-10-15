@@ -1,0 +1,10 @@
+{
+  "metrics": {
+    "accuracy": 0.9057471264367816,
+    "log_loss": 0.34953810576321487,
+    "macro_f1": 0.9056403243527629
+  },
+  "n_positive": null,
+  "n_samples": 435,
+  "notes": ""
+}

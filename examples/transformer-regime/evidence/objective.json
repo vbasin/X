@@ -1,0 +1,37 @@
+{
+  "gates": {
+    "max_log_loss": 0.6,
+    "max_runtime_seconds": 900,
+    "min_accuracy": 0.8,
+    "min_class_recall": 0.75,
+    "min_class_rows": 50,
+    "min_macro_f1": 0.8,
+    "min_prior_log_loss_improvement": 0.25,
+    "min_rows": 200,
+    "persistence_accuracy_margin": 0.05
+  },
+  "model_config": {
+    "batch_size": 64,
+    "confidence_threshold": 0.5,
+    "d_model": 16,
+    "dropout": 0.1,
+    "epochs": 8,
+    "horizon": 4,
+    "layers": [
+      1,
+      2
+    ],
+    "learning_rate": 0.003,
+    "max_runtime_seconds": 900,
+    "min_accuracy": 0.8,
+    "n_heads": 2,
+    "n_rows": 3000,
+    "objective_id": "synthetic-regime-service",
+    "seed": 20261015,
+    "seq_len": 12
+  },
+  "objective_id": "synthetic-regime-service",
+  "purpose": "Promote a small Transformer classification service for observable synthetic regimes after preregistered predictive, artifact, tracking and HTTP acceptance gates; this is not a trading objective or evidence of market edge.",
+  "revision": 1,
+  "synthetic_only": true
+}

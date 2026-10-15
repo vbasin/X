@@ -1,0 +1,68 @@
+{
+  "adverse_slippage": {
+    "assumptions": {
+      "commission_per_trade": 1.03,
+      "contract_multiplier": 2.0,
+      "economic_contract_unit": "MNQ_equivalent",
+      "entry_slippage_points": null,
+      "fill_model": "synthetic fixed-horizon executable quotes; spread=0.25 points",
+      "label": "adverse_slippage",
+      "slippage_points_per_side": 0.25,
+      "stop_slippage_points": null,
+      "target_slippage_points": null,
+      "underlying": "SYNTHETIC_NQ_SCALE"
+    },
+    "gross_dollars": 178.44775263189513,
+    "hit_rate": 0.8666666666666667,
+    "max_drawdown_dollars": -5.110900864901197,
+    "mean_net_dollars_per_trade": 1.3493033684252673,
+    "n_trades": 75,
+    "net_dollars": 101.19775263189506,
+    "t_stat_iid": 8.009224322600799,
+    "total_commission": 77.25
+  },
+  "base": {
+    "assumptions": {
+      "commission_per_trade": 1.03,
+      "contract_multiplier": 2.0,
+      "economic_contract_unit": "MNQ_equivalent",
+      "entry_slippage_points": null,
+      "fill_model": "synthetic fixed-horizon executable quotes; spread=0.25 points",
+      "label": "base",
+      "slippage_points_per_side": 0.0,
+      "stop_slippage_points": null,
+      "target_slippage_points": null,
+      "underlying": "SYNTHETIC_NQ_SCALE"
+    },
+    "gross_dollars": 253.44775263189513,
+    "hit_rate": 0.92,
+    "max_drawdown_dollars": -4.110900864901197,
+    "mean_net_dollars_per_trade": 2.3493033684252675,
+    "n_trades": 75,
+    "net_dollars": 176.19775263189507,
+    "t_stat_iid": 13.94504610295264,
+    "total_commission": 77.25
+  },
+  "double_commission": {
+    "assumptions": {
+      "commission_per_trade": 2.06,
+      "contract_multiplier": 2.0,
+      "economic_contract_unit": "MNQ_equivalent",
+      "entry_slippage_points": null,
+      "fill_model": "synthetic fixed-horizon executable quotes; spread=0.25 points",
+      "label": "double_commission",
+      "slippage_points_per_side": 0.0,
+      "stop_slippage_points": null,
+      "target_slippage_points": null,
+      "underlying": "SYNTHETIC_NQ_SCALE"
+    },
+    "gross_dollars": 253.44775263189513,
+    "hit_rate": 0.8666666666666667,
+    "max_drawdown_dollars": -5.144473341538396,
+    "mean_net_dollars_per_trade": 1.319303368425267,
+    "n_trades": 75,
+    "net_dollars": 98.94775263189503,
+    "t_stat_iid": 7.831149669190243,
+    "total_commission": 154.5
+  }
+}

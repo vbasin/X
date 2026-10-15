@@ -1,0 +1,9 @@
+{
+  "feature_cols": [
+    "wf_return_1",
+    "wf_momentum_4",
+    "wf_momentum_12",
+    "wf_volatility_12",
+    "wf_context"
+  ]
+}

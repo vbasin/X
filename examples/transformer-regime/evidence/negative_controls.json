@@ -1,0 +1,112 @@
+{
+  "prior_only": {
+    "baselines": {
+      "class_prior": {
+        "accuracy": 0.3494809688581315,
+        "log_loss": 1.0974711684780503,
+        "macro_f1": 0.17264957264957267
+      },
+      "sensor_persistence": {
+        "accuracy": 0.9342560553633218,
+        "log_loss": 0.25682154007745367,
+        "macro_f1": 0.9340808595880096
+      }
+    },
+    "checks": {
+      "accuracy": false,
+      "class_recall": false,
+      "macro_f1": false,
+      "maximum_log_loss": false,
+      "minimum_class_rows": true,
+      "minimum_rows": true,
+      "persistence_accuracy_noninferiority": false,
+      "prior_log_loss_improvement": false
+    },
+    "class_counts": [
+      98,
+      90,
+      101
+    ],
+    "metrics": {
+      "accuracy": 0.3494809688581315,
+      "class_recall": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "log_loss": 1.0974711684780503,
+      "macro_f1": 0.17264957264957267,
+      "persistence_accuracy_difference": -0.5847750865051903,
+      "prior_log_loss_improvement": 0.0
+    },
+    "n_rows": 289,
+    "passed": false,
+    "policy": {
+      "max_log_loss": 0.6,
+      "max_runtime_seconds": 900,
+      "min_accuracy": 0.8,
+      "min_class_recall": 0.75,
+      "min_class_rows": 50,
+      "min_macro_f1": 0.8,
+      "min_prior_log_loss_improvement": 0.25,
+      "min_rows": 200,
+      "persistence_accuracy_margin": 0.05
+    },
+    "scope": "synthetic_classification_service_only"
+  },
+  "shuffled_predictions": {
+    "baselines": {
+      "class_prior": {
+        "accuracy": 0.3494809688581315,
+        "log_loss": 1.0974711684780503,
+        "macro_f1": 0.17264957264957267
+      },
+      "sensor_persistence": {
+        "accuracy": 0.9342560553633218,
+        "log_loss": 0.25682154007745367,
+        "macro_f1": 0.9340808595880096
+      }
+    },
+    "checks": {
+      "accuracy": false,
+      "class_recall": false,
+      "macro_f1": false,
+      "maximum_log_loss": false,
+      "minimum_class_rows": true,
+      "minimum_rows": true,
+      "persistence_accuracy_noninferiority": false,
+      "prior_log_loss_improvement": false
+    },
+    "class_counts": [
+      98,
+      90,
+      101
+    ],
+    "metrics": {
+      "accuracy": 0.3217993079584775,
+      "class_recall": [
+        0.2857142857142857,
+        0.32222222222222224,
+        0.3564356435643564
+      ],
+      "log_loss": 2.3793337861258608,
+      "macro_f1": 0.321374704813348,
+      "persistence_accuracy_difference": -0.6124567474048443,
+      "prior_log_loss_improvement": -1.1680148458254904
+    },
+    "n_rows": 289,
+    "passed": false,
+    "policy": {
+      "max_log_loss": 0.6,
+      "max_runtime_seconds": 900,
+      "min_accuracy": 0.8,
+      "min_class_recall": 0.75,
+      "min_class_rows": 50,
+      "min_macro_f1": 0.8,
+      "min_prior_log_loss_improvement": 0.25,
+      "min_rows": 200,
+      "persistence_accuracy_margin": 0.05
+    },
+    "scope": "synthetic_classification_service_only"
+  }
+}

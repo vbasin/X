@@ -66,3 +66,17 @@ it is not the lightweight public-demo dependency set. The public installation
 is defined by `pyproject.toml`; CI verifies Python 3.12. Optional cloud, deep
 learning, broker, and database deployment environments are not certified by
 this release gate.
+
+
+## Recorded Transformer console and optional rerun
+
+The [Robin walkthrough](examples/TRANSFORMER_WORKFLOW.md) adds a real file-backed
+console profile with data/features, model comparison, saved synthetic backtest,
+evaluation/promotion evidence, artifacts and local MLflow. It starts through
+`python -m src.showcase serve`, without operational DB/live-worker imports.
+This does not make the operational `src.webui.app` entry point database-free.
+The exact synthetic fixture and reviewed model files are the narrow publication
+exception; the existing logistic-regression demo remains available separately.
+Use `requirements-showcase.lock` in a fresh Python 3.12 environment; the optional
+CPU training profile is `requirements-transformer.lock`. Do not mix the viewer
+profile with the newer scientific pins in `requirements-demo.lock`.

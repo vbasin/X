@@ -1,0 +1,22 @@
+{
+  "assumptions": {
+    "commission_per_trade": 1.03,
+    "contract_multiplier": 2.0,
+    "economic_contract_unit": "MNQ_equivalent",
+    "entry_slippage_points": null,
+    "fill_model": "synthetic fixed-horizon executable quotes; spread=0.25 points",
+    "label": "base",
+    "slippage_points_per_side": 0.0,
+    "stop_slippage_points": null,
+    "target_slippage_points": null,
+    "underlying": "SYNTHETIC_NQ_SCALE"
+  },
+  "gross_dollars": 258.9580235516478,
+  "hit_rate": 0.9714285714285714,
+  "max_drawdown_dollars": -4.110900864901197,
+  "mean_net_dollars_per_trade": 2.6694003364521106,
+  "n_trades": 70,
+  "net_dollars": 186.85802355164773,
+  "t_stat_iid": 19.997786072612325,
+  "total_commission": 72.10000000000001
+}

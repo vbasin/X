@@ -1,0 +1,164 @@
+{
+  "artifacts": {
+    "calibration": [
+      "calibration.json"
+    ],
+    "cost_sensitivity": [
+      "cost_sensitivity.json"
+    ],
+    "economic_metrics": [
+      "economic_metrics.json"
+    ],
+    "fold_metrics": [
+      "fold_metrics.json"
+    ],
+    "metrics": [
+      "metrics.json"
+    ],
+    "model": [
+      "model.json"
+    ],
+    "oof_predictions": [
+      "oof_predictions.parquet"
+    ],
+    "selected_population": [
+      "selected_population.json"
+    ],
+    "trade_ledger": [
+      "trade_ledger.parquet"
+    ]
+  },
+  "baseline_run_id": null,
+  "calibration": {
+    "fit_partition": "calibration",
+    "method": "temperature"
+  },
+  "code": {
+    "bundle_sha256": "ec9d0bbfd3436588250c4127e9ab047f23a72ec1cc60acfb6d8324dfedea0abb",
+    "dirty": true,
+    "git_sha": "bc39ba29b3118de22fedf41bad8052b557cecfeb"
+  },
+  "config_snapshot": {
+    "batch_size": 64,
+    "class_balance": null,
+    "d_model": 16,
+    "dropout": 0.1,
+    "epochs": 8,
+    "head": "multiclass",
+    "learning_rate": 0.003,
+    "n_features": 5,
+    "n_heads": 2,
+    "n_layers": 1,
+    "seq_len": 12
+  },
+  "config_snapshot_resolved": true,
+  "created_at": "2026-10-15T03:29:07.017623+00:00",
+  "datasets": [
+    {
+      "build_id": null,
+      "content_sha256": "150a89b38646ce3e2d46baf55671ba75faf1e05488ac46faa67fcf536a0a47e8",
+      "contract_id": null,
+      "location": "research/runs/synthetic-regime-service/20261015T032845Z_c77c70f8/synthetic.parquet",
+      "logical_id": "synthetic-sequence-features",
+      "n_rows": 3000,
+      "resolution": null,
+      "semantic_type": "features",
+      "store_id": null
+    },
+    {
+      "build_id": null,
+      "content_sha256": "150a89b38646ce3e2d46baf55671ba75faf1e05488ac46faa67fcf536a0a47e8",
+      "contract_id": null,
+      "location": "research/runs/synthetic-regime-service/20261015T032845Z_c77c70f8/synthetic.parquet",
+      "logical_id": "synthetic-sequence-outcomes",
+      "n_rows": 3000,
+      "resolution": null,
+      "semantic_type": "outcomes",
+      "store_id": null
+    }
+  ],
+  "decision_policy": {
+    "method": "confidence",
+    "threshold": 0.5
+  },
+  "evidence_level": "CANONICAL_COMPLETE",
+  "execution_assumptions": {
+    "commission_per_trade": 1.03,
+    "contract_multiplier": 2.0,
+    "economic_contract_unit": "MNQ_equivalent",
+    "entry_slippage_points": null,
+    "fill_model": "synthetic fixed-horizon executable quotes; spread=0.25 points",
+    "label": "base",
+    "slippage_points_per_side": 0.0,
+    "stop_slippage_points": null,
+    "target_slippage_points": null,
+    "underlying": "SYNTHETIC_NQ_SCALE"
+  },
+  "experiment_family": null,
+  "extra": {
+    "mlflow_run_id": "ea6e7731d0b143539c746cc92a78ae4c",
+    "synthetic_only": true,
+    "temperature": 1.1252026383207905
+  },
+  "hypothesis": "Compare Transformer encoder depth with identical data, split and training settings.",
+  "missing_evidence": [],
+  "objective_id": "synthetic-regime-service",
+  "parent_run_id": null,
+  "passes": [],
+  "responsibility_versions": {
+    "economic_evaluation": "src.evaluation.economic",
+    "model_strategy": "src.models.transformer_plugin",
+    "validation": "workflow_data.chronological_partitions"
+  },
+  "run_id": "20261015T032845Z_c77c70f8-242efa3577d8",
+  "schema_version": 4,
+  "scientific_fingerprint": "0951537cadf92c84",
+  "seeds": {
+    "all": 20261015
+  },
+  "validation": {
+    "embargo_bars": 0,
+    "fold_windows": [
+      {
+        "calibration": {
+          "end": "2024-01-04 03:55:00+00:00",
+          "max_label_end": "2024-01-04 03:59:00+00:00",
+          "rows": 296,
+          "start": "2024-01-03 23:00:00+00:00"
+        },
+        "earlystop": {
+          "end": "2024-01-03 22:55:00+00:00",
+          "max_label_end": "2024-01-03 22:59:00+00:00",
+          "rows": 296,
+          "start": "2024-01-03 18:00:00+00:00"
+        },
+        "holdout": {
+          "end": "2024-01-04 16:29:00+00:00",
+          "max_label_end": "2024-01-04 16:33:00+00:00",
+          "rows": 300,
+          "start": "2024-01-04 11:30:00+00:00"
+        },
+        "train": {
+          "end": "2024-01-03 17:55:00+00:00",
+          "max_label_end": "2024-01-03 17:59:00+00:00",
+          "rows": 1646,
+          "start": "2024-01-02 14:30:00+00:00"
+        },
+        "validation": {
+          "end": "2024-01-04 11:25:00+00:00",
+          "max_label_end": "2024-01-04 11:29:00+00:00",
+          "rows": 446,
+          "start": "2024-01-04 04:00:00+00:00"
+        }
+      }
+    ],
+    "hold_out_dates": null,
+    "min_train_months": null,
+    "n_folds": 1,
+    "purge_bars": 4,
+    "purge_sessions": null,
+    "split": "chronological_five_way",
+    "test_months": null,
+    "weighting": "uniform"
+  }
+}
