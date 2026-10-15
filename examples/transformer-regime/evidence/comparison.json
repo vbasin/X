@@ -1,0 +1,406 @@
+{
+  "designs": [
+    {
+      "baseline": {
+        "accuracy": 0.3333333333333333,
+        "log_loss": 1.0990811502288085,
+        "macro_f1": 0.16666666666666666
+      },
+      "depth": 1,
+      "metrics": {
+        "accuracy": 0.9057471264367816,
+        "log_loss": 0.34953810576321487,
+        "macro_f1": 0.9056403243527629
+      },
+      "mlflow_run_id": "ea6e7731d0b143539c746cc92a78ae4c",
+      "model_id": "242efa3577d8",
+      "reload_max_abs_error": 0.0,
+      "temperature": 1.1252026383207905,
+      "validation_gate": {
+        "baselines": {
+          "class_prior": {
+            "accuracy": 0.3333333333333333,
+            "log_loss": 1.0990811502288085,
+            "macro_f1": 0.16666666666666666
+          },
+          "sensor_persistence": {
+            "accuracy": 0.9172413793103448,
+            "log_loss": 0.3222508123153273,
+            "macro_f1": 0.9174874158720776
+          }
+        },
+        "checks": {
+          "accuracy": true,
+          "class_recall": true,
+          "macro_f1": true,
+          "maximum_log_loss": true,
+          "minimum_class_rows": true,
+          "minimum_rows": true,
+          "persistence_accuracy_noninferiority": true,
+          "prior_log_loss_improvement": true
+        },
+        "class_counts": [
+          150,
+          140,
+          145
+        ],
+        "metrics": {
+          "accuracy": 0.9057471264367816,
+          "class_recall": [
+            0.9133333333333333,
+            0.8857142857142857,
+            0.9172413793103448
+          ],
+          "log_loss": 0.34953810576321487,
+          "macro_f1": 0.9056403243527629,
+          "persistence_accuracy_difference": -0.011494252873563204,
+          "prior_log_loss_improvement": 0.6819724315256908
+        },
+        "n_rows": 435,
+        "passed": true,
+        "policy": {
+          "max_log_loss": 0.6,
+          "max_runtime_seconds": 900,
+          "min_accuracy": 0.8,
+          "min_class_recall": 0.75,
+          "min_class_rows": 50,
+          "min_macro_f1": 0.8,
+          "min_prior_log_loss_improvement": 0.25,
+          "min_rows": 200,
+          "persistence_accuracy_margin": 0.05
+        },
+        "scope": "synthetic_classification_service_only"
+      }
+    },
+    {
+      "baseline": {
+        "accuracy": 0.3333333333333333,
+        "log_loss": 1.0990811502288085,
+        "macro_f1": 0.16666666666666666
+      },
+      "depth": 2,
+      "metrics": {
+        "accuracy": 0.9195402298850575,
+        "log_loss": 0.3045525589306644,
+        "macro_f1": 0.9197705243561797
+      },
+      "mlflow_run_id": "82aef6acdbde4d0d88c9b6d84c260173",
+      "model_id": "d7facd489218",
+      "reload_max_abs_error": 0.0,
+      "temperature": 1.419655862109516,
+      "validation_gate": {
+        "baselines": {
+          "class_prior": {
+            "accuracy": 0.3333333333333333,
+            "log_loss": 1.0990811502288085,
+            "macro_f1": 0.16666666666666666
+          },
+          "sensor_persistence": {
+            "accuracy": 0.9172413793103448,
+            "log_loss": 0.3222508123153273,
+            "macro_f1": 0.9174874158720776
+          }
+        },
+        "checks": {
+          "accuracy": true,
+          "class_recall": true,
+          "macro_f1": true,
+          "maximum_log_loss": true,
+          "minimum_class_rows": true,
+          "minimum_rows": true,
+          "persistence_accuracy_noninferiority": true,
+          "prior_log_loss_improvement": true
+        },
+        "class_counts": [
+          150,
+          140,
+          145
+        ],
+        "metrics": {
+          "accuracy": 0.9195402298850575,
+          "class_recall": [
+            0.9133333333333333,
+            0.9571428571428572,
+            0.8896551724137931
+          ],
+          "log_loss": 0.3045525589306644,
+          "macro_f1": 0.9197705243561797,
+          "persistence_accuracy_difference": 0.0022988505747126853,
+          "prior_log_loss_improvement": 0.722902572874385
+        },
+        "n_rows": 435,
+        "passed": true,
+        "policy": {
+          "max_log_loss": 0.6,
+          "max_runtime_seconds": 900,
+          "min_accuracy": 0.8,
+          "min_class_recall": 0.75,
+          "min_class_rows": 50,
+          "min_macro_f1": 0.8,
+          "min_prior_log_loss_improvement": 0.25,
+          "min_rows": 200,
+          "persistence_accuracy_margin": 0.05
+        },
+        "scope": "synthetic_classification_service_only"
+      }
+    }
+  ],
+  "results": {
+    "differences": {
+      "calibration.json": {
+        "brier_score": [
+          0.0821511492937731,
+          0.0851028755559043
+        ],
+        "bucket_counts[4]": [
+          1,
+          0
+        ],
+        "bucket_counts[5]": [
+          22,
+          5
+        ],
+        "bucket_counts[6]": [
+          33,
+          7
+        ],
+        "bucket_counts[7]": [
+          54,
+          51
+        ],
+        "bucket_counts[8]": [
+          41,
+          60
+        ],
+        "bucket_counts[9]": [
+          134,
+          162
+        ],
+        "observed_rate[5]": [
+          0.5,
+          0.4
+        ],
+        "observed_rate[6]": [
+          0.8181818181818182,
+          0.5714285714285714
+        ],
+        "observed_rate[7]": [
+          0.8518518518518519,
+          0.7254901960784313
+        ],
+        "observed_rate[8]": [
+          0.8780487804878049,
+          0.9
+        ],
+        "observed_rate[9]": [
+          1.0,
+          0.9629629629629629
+        ],
+        "predicted_rate[4]": [
+          0.49780598306043966,
+          0.0
+        ],
+        "predicted_rate[5]": [
+          0.551892012483931,
+          0.5396477347177004
+        ],
+        "predicted_rate[6]": [
+          0.6676489814054352,
+          0.6637612063620241
+        ],
+        "predicted_rate[7]": [
+          0.7482718035702774,
+          0.7661293700300514
+        ],
+        "predicted_rate[8]": [
+          0.8509575338323242,
+          0.8600429956988465
+        ],
+        "predicted_rate[9]": [
+          0.9717373291258803,
+          0.946440613757458
+        ],
+        "temperature": [
+          1.1252026383207905,
+          1.419655862109516
+        ]
+      },
+      "cost_sensitivity.json": {
+        "adverse_slippage.gross_dollars": [
+          178.44775263189513,
+          188.95802355164778
+        ],
+        "adverse_slippage.hit_rate": [
+          0.8666666666666667,
+          0.9714285714285714
+        ],
+        "adverse_slippage.mean_net_dollars_per_trade": [
+          1.3493033684252673,
+          1.6694003364521102
+        ],
+        "adverse_slippage.n_trades": [
+          75,
+          70
+        ],
+        "adverse_slippage.net_dollars": [
+          101.19775263189506,
+          116.85802355164772
+        ],
+        "adverse_slippage.t_stat_iid": [
+          8.009224322600799,
+          12.506296017886658
+        ],
+        "adverse_slippage.total_commission": [
+          77.25,
+          72.10000000000001
+        ],
+        "base.gross_dollars": [
+          253.44775263189513,
+          258.9580235516478
+        ],
+        "base.hit_rate": [
+          0.92,
+          0.9714285714285714
+        ],
+        "base.mean_net_dollars_per_trade": [
+          2.3493033684252675,
+          2.6694003364521106
+        ],
+        "base.n_trades": [
+          75,
+          70
+        ],
+        "base.net_dollars": [
+          176.19775263189507,
+          186.85802355164773
+        ],
+        "base.t_stat_iid": [
+          13.94504610295264,
+          19.997786072612325
+        ],
+        "base.total_commission": [
+          77.25,
+          72.10000000000001
+        ],
+        "double_commission.gross_dollars": [
+          253.44775263189513,
+          258.9580235516478
+        ],
+        "double_commission.hit_rate": [
+          0.8666666666666667,
+          0.9714285714285714
+        ],
+        "double_commission.max_drawdown_dollars": [
+          -5.144473341538396,
+          -5.140900864901198
+        ],
+        "double_commission.mean_net_dollars_per_trade": [
+          1.319303368425267,
+          1.6394003364521095
+        ],
+        "double_commission.n_trades": [
+          75,
+          70
+        ],
+        "double_commission.net_dollars": [
+          98.94775263189503,
+          114.75802355164767
+        ],
+        "double_commission.t_stat_iid": [
+          7.831149669190243,
+          12.281551316244883
+        ],
+        "double_commission.total_commission": [
+          154.5,
+          144.20000000000002
+        ]
+      },
+      "economic_metrics.json": {
+        "gross_dollars": [
+          253.44775263189513,
+          258.9580235516478
+        ],
+        "hit_rate": [
+          0.92,
+          0.9714285714285714
+        ],
+        "mean_net_dollars_per_trade": [
+          2.3493033684252675,
+          2.6694003364521106
+        ],
+        "n_trades": [
+          75,
+          70
+        ],
+        "net_dollars": [
+          176.19775263189507,
+          186.85802355164773
+        ],
+        "t_stat_iid": [
+          13.94504610295264,
+          19.997786072612325
+        ],
+        "total_commission": [
+          77.25,
+          72.10000000000001
+        ]
+      },
+      "fold_metrics.json": {
+        "folds[0].metrics.accuracy": [
+          0.9057471264367816,
+          0.9195402298850575
+        ],
+        "folds[0].metrics.log_loss": [
+          0.34953810576321487,
+          0.3045525589306644
+        ],
+        "folds[0].metrics.macro_f1": [
+          0.9056403243527629,
+          0.9197705243561797
+        ]
+      },
+      "metrics.json": {
+        "metrics.accuracy": [
+          0.9057471264367816,
+          0.9195402298850575
+        ],
+        "metrics.log_loss": [
+          0.34953810576321487,
+          0.3045525589306644
+        ],
+        "metrics.macro_f1": [
+          0.9056403243527629,
+          0.9197705243561797
+        ]
+      },
+      "selected_population.json": {
+        "n_selected": [
+          288,
+          276
+        ]
+      }
+    },
+    "invalid_evidence": [],
+    "missing_expected": [],
+    "not_applicable": [],
+    "one_sided": {}
+  },
+  "setup": {
+    "controlled_comparison": true,
+    "differences": {
+      "config_snapshot": {
+        "n_layers": [
+          1,
+          2
+        ]
+      }
+    },
+    "missing_evidence": [],
+    "run_id_a": "20261015T032845Z_c77c70f8-242efa3577d8",
+    "run_id_b": "20261015T032845Z_c77c70f8-d7facd489218",
+    "uncontrolled_dimensions": [
+      "config_snapshot"
+    ],
+    "warning": ""
+  }
+}

@@ -790,3 +790,25 @@ intentionally included when allowlisted. No private source history was copied.
 The destination's existing `Opportunity Analysis` is preserved unchanged.
 No files are moved/deleted, no DB is accessed, no data is rebuilt, and no push
 is authorized by this preparation.
+
+
+## 2026-10-15 — working Transformer showcase for X
+
+The user authorized the working showcase and README. Implementation is isolated
+in the X checkout on `showcase/transformer-robin`, based on `4e498b14`; the
+operational `/opt/vtech` checkout and original accepted run remain untouched.
+Before edits, existing files were copied with relative paths to
+`archive/code_snapshots/20261015_transformer_showcase/` (ignored, local retention).
+This preserve-then-edit exception covers README, pyproject, Makefile, CI,
+conftest/scope consistency, transformer_plugin, architecture/publication/layout/
+roadmap/changelog docs and this manifest. No existing path was removed or moved.
+New file-backed showcase modules reuse canonical run paths and present an
+allowlisted exact synthetic fixture; the original operational deployment bundle
+is excluded. Copied workflow modules/configs retain the frozen objective and
+promotion gate. Public projections record original evidence hashes rather than
+silently rewriting promotion receipts. See `docs/examples/TRANSFORMER_WORKFLOW.md`.
+
+The same preserved-original exception also covers `.gitignore`,
+`project_manifest.yaml` and `docs/RESEARCH_WORKFLOW.md`. Root snapshots remain
+local and ignored; the only public binary additions are the allowlisted
+synthetic fixture and the actual console screenshot under `docs/assets/`.

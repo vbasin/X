@@ -8,3 +8,12 @@
 - Added explicit-path public CI/test gate; no full-suite or live integration claim.
 - Removed original-code MIT claims by owner choice and retained third-party notices.
 - Preserved the destination repository's existing content; no push authorized.
+
+
+## 2026-10-15 — portable Robin Transformer showcase
+
+Added the retained synthetic fixture, read-only console tabs, portable MLflow
+lineage import, optional bounded training/promotion workflow, isolated dependency
+profiles, explicit scoped tests and a tested README walkthrough. Existing
+operator runtime data and the lightweight logistic-regression demo remain
+preserved. See `docs/examples/TRANSFORMER_WORKFLOW.md` for measured validation.

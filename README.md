@@ -5,12 +5,75 @@ acquisition, causal feature engineering, configurable model experiments,
 walk-forward validation, execution-aware economics, and an operational WebUI.
 
 **This is research infrastructure, not a proven profitable trading system.**
-No vendor market data, private trained models, credentials, or operating database
-is distributed. Historical research paths have known limitations; see
+No vendor market data, private trading models, credentials, or operating database
+is distributed. A small synthetic Transformer and its recorded test evidence are included. Historical research paths have known limitations; see
 [capabilities and limitations](docs/PUBLIC_SHOWCASE.md) and
 [the configuration audit](docs/CONFIG_AUDIT.md).
 
-## Run the offline demonstration
+## Explore Robin: the Transformer workflow
+
+**Robin** is a small, synthetic example: 3,000 minutes of invented prices and
+five trailing features. It learned to classify the next four minutes as down,
+flat, or up. Two Transformer designs were compared; the winner passed fixed
+validation and holdout gates and was promoted for this synthetic service only.
+This is not evidence of a real-market trading edge.
+
+Use **Python 3.12 on Linux** (validated on OCI ARM64). This viewer needs no GPU,
+PostgreSQL service, vendor credentials, cloud account, or training step. MLflow
+uses its own local SQLite file. Start with a fresh environment; this profile
+uses different dependency pins from the lightweight demo below.
+
+```bash
+git clone https://github.com/vbasin/X.git
+cd X
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-showcase.lock
+python -m pip install -e .
+python -m src.showcase prepare --output .demo-output/robin
+python -m src.showcase serve --output .demo-output/robin
+```
+
+Open **http://127.0.0.1:8700** for the WebUI and **http://127.0.0.1:5000** for
+MLflow. Ctrl+C stops both. If a port is occupied, add `--port 8701 --mlflow-port
+5001` to `serve`. To reopen, run only `serve`; `prepare` requires a new output
+name. When running on a VM, forward both ports through SSH or your editor.
+
+```text
+Data / Features → Models → Backtest → Evaluation / Promotion → MLflow
+   3,000 rows     2 designs  saved trades   fixed gates          run lineage
+```
+
+![Robin console displaying the retained synthetic dataset and original evaluation](docs/assets/robin-dashboard.png)
+
+Explore the feature and split selectors, switch model designs, and inspect
+predictions, the costed synthetic trade ledger, rejected controls and promotion
+evidence. The artifact browser exposes the exact files used for the example.
+Order books, live feeds and operational jobs are unavailable because this
+fixture contains no such data.
+
+The immutable fixture is under `examples/transformer-regime/`. Preparation copies
+it into canonical `research/runs/` paths beneath `.demo-output/robin/` and imports
+MLflow records with **new local IDs and original IDs retained as provenance**.
+The UI labels these as recorded evidence; opening the example does not rerun or
+re-promote the model. Runtime files stay out of Git.
+
+For an **actual CPU training and promotion test**, install the optional profile
+and run the frozen objective into a fresh output directory:
+
+```bash
+python -m pip install -r requirements-transformer.lock
+python -m src.experiment.transformer_workflow \
+  --objective config/workflows/synthetic_regime_objective.json \
+  --data-root "$PWD/.demo-output/robin-rerun"
+```
+
+The supervisor caps the test at **15 minutes**, including training and serving
+checks. A timeout is a failed test. No gates are relaxed to fit the time limit.
+See the [complete walkthrough](docs/examples/TRANSFORMER_WORKFLOW.md) for viewing
+your new run, model design, storage, MLflow lineage, and scoped verification.
+
+## Run the lightweight offline demonstration
 
 Python 3.10+; Python 3.12 is the release-validation target. No GPU, database,
 Databento key, LLM key, cloud account, or environment file is needed.
@@ -86,6 +149,7 @@ source checkout; the installed wheel supports the synthetic demo independently.
 
 ## Documentation
 
+- [Transformer showcase and real rerun](docs/examples/TRANSFORMER_WORKFLOW.md)
 - [Public scope, setup boundaries, and known limitations](docs/PUBLIC_SHOWCASE.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Experiment artifacts](docs/EXPERIMENTS.md)

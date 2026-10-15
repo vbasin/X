@@ -1,0 +1,211 @@
+{
+  "elapsed_seconds": 64.63177180592902,
+  "lifecycle": "PRODUCTION",
+  "promotion": {
+    "bundle_sha256": {
+      "baseline.json": "adfc17a3a54ff664bbeaf9fb509d372e6afe2d213626357d9a337a14a275df22",
+      "calibration.json": "c7f4305eb4246bf309482ca88b2aac71e3c9fb4e7679fae38b530706a30e8e3b",
+      "cost_sensitivity.json": "fe405d533935b17836c70c2b4a1477894127452886f27de74c352823c294ddb2",
+      "economic_metrics.json": "8e444c252014ee883b66e03cecce10d603c22a5ebcedb170615a6f7edcfccc1d",
+      "feature_schema.json": "fb82d7d3b54a393f268eebf10e9db9d8bfb2ab6ed5d5346a26798e9090863c35",
+      "finalize_manifest.json": "6fd7c1f1bc9d9242262f8ca80b06097a3f4161788809123e53b008d9a0594d46",
+      "fold_metrics.json": "63664419e594b1443dd3f89d699864300fc67a639f8cfa9fe805e24aafbfd0d8",
+      "manifest.json": "8d494757115efb34158f242df48ec071df7b1a168dee7f64cd28433155ce2aab",
+      "metrics.json": "d6396512fa7b7fa291a013968cf3c5cfa822240f50ff17bfe88f5a36a81b13c4",
+      "model.json": "94567b3015389c600cccad4e303b21d1ff60b95c7c4495ed5ee4ead0413ab138",
+      "model.keras": "daed32f3d9c0c76390067245ce55e88b0bf44f786a02a03cb1d15b17f03983e3",
+      "oof_predictions.parquet": "85a7e8dbba7c018112bd39b0b2f9aee684fd5371866337f4541daa84aab431cf",
+      "scaler.pkl": "84965b9377730257654bf6edeff3cb35a8f5ab06905c0678f90e934561a46272",
+      "selected_population.json": "fa644abf058485d7c4f93285bebdcd692cfe1e35435ecd981c05820575d9a6c7",
+      "tracking_verification.json": "bf2f6fc33818b066cd00382217bc3d948e8f0a26f20695eed930acb7093b2a42",
+      "trade_ledger.parquet": "3692668172dd6ef5c4607a5191b5feda417e65dbf0e09daddfa460ff0cc623f6",
+      "validation_evidence.npz": "507bb274bde253c5122dc24ce7cd48c2a06f80986729441985f32aaaac9fc538",
+      "validation_gate.json": "e27c2e1485c75fc0d83fde4fa88dcd125b4cce11efd938c236a84e347f8bee07"
+    },
+    "candidate_id": "d7facd489218",
+    "evidence_sha256": {
+      "completion.json": "dd64c1b1b1122e2ca13ec8ba315e091a739ec48c2fbf293f8135c6511267e303",
+      "deployment_verification.json": "e71eea5352e6a58695266b0c5e910fdd121c69c992c22cc1cc3b3e4c411d1479",
+      "holdout_consultation.json": "b75027409c757f3316d405e3b0c981e68068f8a859387bd93414e3fbe69ed5bd",
+      "holdout_evidence.npz": "afee644e91d53a979e64ca8b25ff683eb67256695e8cdabb7fc4a282b2d2e6fd",
+      "holdout_gate.json": "9b8bd903b276738d62b3a641428fb3b4e172c15065277aa81394de2f9d8f455d",
+      "manifest.json": "95fd7275925ed4cd0fdba066afd526864360cbd765dabd3a777f527a49ecce6b",
+      "negative_controls.json": "48640316aedb834742c858e08fb379861fa4cc5fb7bcbc4268ab97de72eaf86f",
+      "objective.json": "7e1d9aef7fd453ea581aeacf1182896648bd541b3f204b03c328b95c1bfe6d48",
+      "promotion_expected.json": "20146ccce41baeee32bc860abcbc50f0c14a450f1acecc5836f7164a5dac6fce",
+      "promotion_input.json": "5898a038f175c91d8c9917b3f4c23d145d38284210b4d6f39474ce2b848add6a",
+      "registry.json": "e2102e2ed2b513e5c5400af1c864e8e9b90629177eb1ab44f15e31a8c307885f",
+      "request.json": "9a9385358b2d09280e8d2c199847c142d126554406465d07b3dbc1785164614d",
+      "selection.json": "38b801d36374138882a4f5aabd9b971a3c4f3d3b1d6a75864ddaedd423ea8fd3",
+      "summary.json": "7eab14ce6a0978ee97c5c3ab2c7f342a8cbb1ab2fda5745bbec5f9e8043f2a6a",
+      "synthetic.parquet": "150a89b38646ce3e2d46baf55671ba75faf1e05488ac46faa67fcf536a0a47e8",
+      "validation_evidence.npz": "507bb274bde253c5122dc24ce7cd48c2a06f80986729441985f32aaaac9fc538",
+      "validation_gate.json": "e27c2e1485c75fc0d83fde4fa88dcd125b4cce11efd938c236a84e347f8bee07"
+    },
+    "family": "transformer",
+    "gates": {
+      "holdout": {
+        "baselines": {
+          "class_prior": {
+            "accuracy": 0.3494809688581315,
+            "log_loss": 1.0974711684780503,
+            "macro_f1": 0.17264957264957267
+          },
+          "sensor_persistence": {
+            "accuracy": 0.9342560553633218,
+            "log_loss": 0.25682154007745367,
+            "macro_f1": 0.9340808595880096
+          }
+        },
+        "checks": {
+          "accuracy": true,
+          "class_recall": true,
+          "macro_f1": true,
+          "maximum_log_loss": true,
+          "minimum_class_rows": true,
+          "minimum_rows": true,
+          "persistence_accuracy_noninferiority": true,
+          "prior_log_loss_improvement": true
+        },
+        "class_counts": [
+          98,
+          90,
+          101
+        ],
+        "metrics": {
+          "accuracy": 0.9342560553633218,
+          "class_recall": [
+            0.9591836734693877,
+            0.9444444444444444,
+            0.900990099009901
+          ],
+          "log_loss": 0.242029646786449,
+          "macro_f1": 0.9340808595880096,
+          "persistence_accuracy_difference": 0.0,
+          "prior_log_loss_improvement": 0.7794660545642483
+        },
+        "n_rows": 289,
+        "passed": true,
+        "policy": {
+          "max_log_loss": 0.6,
+          "max_runtime_seconds": 900,
+          "min_accuracy": 0.8,
+          "min_class_recall": 0.75,
+          "min_class_rows": 50,
+          "min_macro_f1": 0.8,
+          "min_prior_log_loss_improvement": 0.25,
+          "min_rows": 200,
+          "persistence_accuracy_margin": 0.05
+        },
+        "scope": "synthetic_classification_service_only"
+      },
+      "validation": {
+        "baselines": {
+          "class_prior": {
+            "accuracy": 0.3333333333333333,
+            "log_loss": 1.0990811502288085,
+            "macro_f1": 0.16666666666666666
+          },
+          "sensor_persistence": {
+            "accuracy": 0.9172413793103448,
+            "log_loss": 0.3222508123153273,
+            "macro_f1": 0.9174874158720776
+          }
+        },
+        "checks": {
+          "accuracy": true,
+          "class_recall": true,
+          "macro_f1": true,
+          "maximum_log_loss": true,
+          "minimum_class_rows": true,
+          "minimum_rows": true,
+          "persistence_accuracy_noninferiority": true,
+          "prior_log_loss_improvement": true
+        },
+        "class_counts": [
+          150,
+          140,
+          145
+        ],
+        "metrics": {
+          "accuracy": 0.9195402298850575,
+          "class_recall": [
+            0.9133333333333333,
+            0.9571428571428572,
+            0.8896551724137931
+          ],
+          "log_loss": 0.3045525589306644,
+          "macro_f1": 0.9197705243561797,
+          "persistence_accuracy_difference": 0.0022988505747126853,
+          "prior_log_loss_improvement": 0.722902572874385
+        },
+        "n_rows": 435,
+        "passed": true,
+        "policy": {
+          "max_log_loss": 0.6,
+          "max_runtime_seconds": 900,
+          "min_accuracy": 0.8,
+          "min_class_recall": 0.75,
+          "min_class_rows": 50,
+          "min_macro_f1": 0.8,
+          "min_prior_log_loss_improvement": 0.25,
+          "min_rows": 200,
+          "persistence_accuracy_margin": 0.05
+        },
+        "scope": "synthetic_classification_service_only"
+      }
+    },
+    "lifecycle": "PRODUCTION",
+    "mlflow_parent_run_id": "1aaf47dfd7454e5fa96fcad14f7b68d4",
+    "objective_id": "synthetic-regime-service",
+    "promoted_at": "2026-10-15T03:29:52.573265+00:00",
+    "promoted_by": "src.serving.workflow_promotion",
+    "promotion_scope": "synthetic regime inference service only",
+    "pyfunc_package_sha256": "bd395200e731ef71e221e628f3899d6f6c1aa567fd53daee4973de082c0a5330",
+    "registry": {
+      "alias": "test-serving",
+      "name": "workflow-test-transformer-20261015T032845Z_c77c70f8",
+      "version": "1"
+    },
+    "runtime_budget_seconds": 900,
+    "serving": {
+      "alias_reload_verified": true,
+      "alias_uri": "models:/workflow-test-transformer-20261015T032845Z_c77c70f8@test-serving",
+      "alias_version": "1",
+      "canonical_bundle_verified": true,
+      "http": {
+        "direction_parity": true,
+        "elapsed_seconds": 10.17039806721732,
+        "inference_seconds": 0.5866943129803985,
+        "input_rows": 20,
+        "invalid_feature_status": 400,
+        "local_only": true,
+        "probability_parity": true,
+        "server_stopped": true,
+        "startup_seconds": 9.543202473083511,
+        "timestamp_parity": true,
+        "verified": true
+      },
+      "probability_parity": true
+    },
+    "synthetic_only": true,
+    "total_elapsed_seconds": 64.55208972794935,
+    "trading_activation": false,
+    "training_origin_lifecycle": "EXPERIMENTAL",
+    "transitions": [
+      {
+        "from": "EXPERIMENTAL",
+        "reason": "frozen validation evaluation gates passed",
+        "to": "CANDIDATE"
+      },
+      {
+        "from": "CANDIDATE",
+        "reason": "frozen holdout, artifact integrity and alias HTTP acceptance passed",
+        "to": "PRODUCTION"
+      }
+    ],
+    "version": "20261015T032845Z_c77c70f8"
+  },
+  "scope": "synthetic_service_only",
+  "status": "PASSED"
+}

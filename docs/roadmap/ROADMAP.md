@@ -12,3 +12,11 @@
   tested examples; do not imply the offline gate validates them.
 - Address historical causal normalization and configuration-consumption findings
   before making real-data trading-performance claims.
+
+
+## Public Transformer showcase — 2026-10-15
+
+Active: portable recorded Robin run, local console/MLflow and genuine optional
+CPU promotion workflow. Next: validate additional operating systems before
+claiming support; preserve the existing lightweight demo and explicit synthetic
+scope. No live trading or vendor feed integration is part of this example.

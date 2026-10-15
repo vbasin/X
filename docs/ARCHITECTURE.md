@@ -257,3 +257,19 @@ so there is no fabricated objective YAML or production-loader integration.
 See [ADR-139](decisions/ADR-139-nq-cadence-policy-research.md),
 [protocol](research/NQ_CADENCE_AREA_PROTOCOL.md), and
 [data repair evidence](research/NQ_DISCOVERY_DATA_REPAIR.md).
+
+
+## Portable synthetic Transformer showcase — 2026-10-15
+
+`src/showcase.py` composes a file-backed profile in `src/webui/showcase.py` with
+`src/showcase_data.py`'s checksummed fixture and MLflow import. Its console tabs
+present recorded data/features, two models, synthetic replay, evaluation,
+promotion and artifacts without initializing operational services. Preparation
+uses existing canonical data/run path functions under an explicit output root.
+The optional `src/experiment/transformer_workflow.py` path performs genuine
+bounded training, calibration, comparison, evaluation, serving and scoped
+synthetic-service promotion using `workflow_data/gates/tracking` and
+`src/serving/workflow_model/http/promotion`. This is an experimental non-trading
+example; trading-track lifecycle status is unchanged. See
+[implementation and validation](examples/TRANSFORMER_WORKFLOW.md) and
+[ADR-162](decisions/ADR-162-portable-transformer-showcase.md).

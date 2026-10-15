@@ -30,7 +30,7 @@ MAKEFILE = REPO / "Makefile"
 TESTS_DIR = REPO / "tests"
 
 # The gate variable in the Makefile, e.g. ACQUISITION_TESTS, keyed by marker.
-GATES = {"acquisition": "ACQUISITION_TESTS", "publication": "PUBLICATION_TESTS"}
+GATES = {"acquisition": "ACQUISITION_TESTS", "publication": "PUBLICATION_TESTS", "showcase": "SHOWCASE_TESTS", "ml_workflow": "ML_WORKFLOW_TESTS"}
 
 
 def _makefile_paths(variable: str) -> set[str]:

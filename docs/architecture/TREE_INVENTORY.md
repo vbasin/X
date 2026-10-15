@@ -217,3 +217,16 @@ No mass delete of domain code. No paid downloads.
 The recovery inventory also includes `scripts/data/validate_gap_recovery.py` and four explicit acquisition-gate test modules (`test_gap_recovery_acquisition`, `test_gap_recovery_ingestion`, `test_gap_recovery_validation`, `test_gap_rebuild_outputs`). Their generated run/candidate/preserved artifacts are external data under `data/tmp/gap_outputs_20261006_*`, resolved through the existing data-plane paths; no preexisting source path is moved or removed.
 
 Completed downstream publication evidence is retained under `data/tmp/gap_outputs_20261006_options_publication_retry/`: original DB/file snapshots, hourly commit receipts, independent canonical-file validation snapshots and exact/normalized contract receipts. Both feature gate attempts remain under their original `data/tmp/` paths; no feature Parquet was generated. All artifacts are preserved external data.
+
+
+## Transformer showcase supplement — 2026-10-15
+
+**Present:** `examples/transformer-regime/` is an explicitly allowlisted synthetic
+fixture; `src/showcase.py`, `src/showcase_data.py`, `src/webui/showcase.py` and its
+static assets provide local exploration. `scripts/showcase/export_transformer.py`
+exports reviewed projections. `config/workflows/`, the seven workflow modules,
+explicit scoped tests and dependency locks support genuine optional reruns.
+**Supersedes:** no operational path; existing lightweight demo is retained.
+**Next:** maintain fixture provenance and release checks. Generated state stays
+in ignored `.demo-output/`; local pre-edit preservation stays in ignored
+`archive/code_snapshots/20261015_transformer_showcase/`. No paths deleted.

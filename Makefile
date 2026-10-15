@@ -10,6 +10,11 @@ MLFLOW_LOG   := /opt/vtech/logs/mlflow-ui.log
 PYTHON ?= python
 DEMO_OUTPUT ?= .demo-output/run
 PUBLICATION_TESTS = tests/test_public_demo.py
+SHOWCASE_TESTS = tests/test_showcase_data.py tests/test_showcase_ui.py tests/test_showcase_cli.py
+ML_WORKFLOW_TESTS = tests/test_transformer_workflow.py tests/test_transformer_workflow_model.py \
+	tests/test_workflow_data.py tests/test_workflow_gates.py tests/test_workflow_http.py \
+	tests/test_workflow_promotion.py tests/test_workflow_serving.py tests/test_workflow_tracking.py \
+	tests/test_transformer_showcase_inference.py
 PUBLIC_CONTRACT_TESTS = tests/architecture/test_causal.py \
 	tests/architecture/test_economic_evaluation.py \
 	tests/architecture/test_experiment_manifest.py \
@@ -259,3 +264,16 @@ push_git:
 # try to interpret them as targets of their own.
 %:
 	@:
+
+# Portable synthetic Transformer scopes; no operational services or live data.
+.PHONY: test-showcase test-ml-workflow transformer-showcase
+
+test-showcase:
+	$(PYTHON) -m pytest $(SHOWCASE_TESTS) tests/test_scope_gate_consistency.py
+
+test-ml-workflow:
+	$(PYTHON) -m pytest $(ML_WORKFLOW_TESTS) tests/test_scope_gate_consistency.py
+
+transformer-showcase:
+	$(PYTHON) -m src.showcase prepare --output "$(DEMO_OUTPUT)"
+	$(PYTHON) -m src.showcase serve --output "$(DEMO_OUTPUT)"

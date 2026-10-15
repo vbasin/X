@@ -1,0 +1,539 @@
+{
+  "export_method": "MlflowClient get_run/get_metric_history",
+  "parent_run_id": "1aaf47dfd7454e5fa96fcad14f7b68d4",
+  "registry": {
+    "alias": "test-serving",
+    "name": "workflow-test-transformer-20261015T032845Z_c77c70f8",
+    "version": "1"
+  },
+  "runs": [
+    {
+      "metrics": {
+        "holdout.accuracy": [
+          {
+            "step": 0,
+            "timestamp": 1792034962059,
+            "value": 0.9342560553633218
+          }
+        ],
+        "holdout.log_loss": [
+          {
+            "step": 0,
+            "timestamp": 1792034962059,
+            "value": 0.242029646786449
+          }
+        ],
+        "holdout.macro_f1": [
+          {
+            "step": 0,
+            "timestamp": 1792034962059,
+            "value": 0.9340808595880096
+          }
+        ]
+      },
+      "omitted_fields": [],
+      "params": {
+        "batch_size": "64",
+        "code_digest": "ec9d0bbfd3436588250c4127e9ab047f23a72ec1cc60acfb6d8324dfedea0abb",
+        "confidence_threshold": "0.5",
+        "cpu_threads": "6",
+        "d_model": "16",
+        "data_sha256": "150a89b38646ce3e2d46baf55671ba75faf1e05488ac46faa67fcf536a0a47e8",
+        "dropout": "0.1",
+        "epochs": "8",
+        "horizon": "4",
+        "layers": "[1,2]",
+        "learning_rate": "0.003",
+        "max_runtime_seconds": "900",
+        "min_accuracy": "0.8",
+        "n_heads": "2",
+        "n_rows": "3000",
+        "objective_id": "synthetic-regime-service",
+        "seed": "20261015",
+        "selection_metric": "validation.log_loss",
+        "seq_len": "12"
+      },
+      "source_end_time": 1792034977884,
+      "source_run_id": "1aaf47dfd7454e5fa96fcad14f7b68d4",
+      "source_start_time": 1792034937523,
+      "source_status": "FINISHED",
+      "tags": {
+        "mlflow.runName": "20261015T032845Z_c77c70f8",
+        "synthetic_only": "true",
+        "vtech.workflow": "transformer_smoke",
+        "workflow": "synthetic-regime-service",
+        "workflow.promotion_status": "PASSED"
+      }
+    },
+    {
+      "metrics": {
+        "reload_max_abs_error": [
+          {
+            "step": 0,
+            "timestamp": 1792034947030,
+            "value": 0.0
+          }
+        ],
+        "temperature": [
+          {
+            "step": 0,
+            "timestamp": 1792034947030,
+            "value": 1.1252026383207905
+          }
+        ],
+        "train.accuracy": [
+          {
+            "step": 0,
+            "timestamp": 1792034942774,
+            "value": 0.6819571852684021
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034943102,
+            "value": 0.8556575179100037
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034943707,
+            "value": 0.8825688362121582
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034944004,
+            "value": 0.8923547267913818
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034944348,
+            "value": 0.8954128623008728
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034944726,
+            "value": 0.9119266271591187
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034945078,
+            "value": 0.9155963063240051
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034945483,
+            "value": 0.9180428385734558
+          }
+        ],
+        "train.loss": [
+          {
+            "step": 0,
+            "timestamp": 1792034942774,
+            "value": 0.8226324319839478
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034943102,
+            "value": 0.4297488331794739
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034943707,
+            "value": 0.34640300273895264
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034944004,
+            "value": 0.31909120082855225
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034944348,
+            "value": 0.3125527501106262
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034944726,
+            "value": 0.2796252369880676
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034945078,
+            "value": 0.27154698967933655
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034945483,
+            "value": 0.2616911232471466
+          }
+        ],
+        "train.val_accuracy": [
+          {
+            "step": 0,
+            "timestamp": 1792034942774,
+            "value": 0.8315789699554443
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034943102,
+            "value": 0.8701754212379456
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034943707,
+            "value": 0.8842105269432068
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034944004,
+            "value": 0.8912280797958374
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034944348,
+            "value": 0.898245632648468
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034944726,
+            "value": 0.9087719321250916
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034945078,
+            "value": 0.9087719321250916
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034945483,
+            "value": 0.9052631855010986
+          }
+        ],
+        "train.val_loss": [
+          {
+            "step": 0,
+            "timestamp": 1792034942774,
+            "value": 0.5193507075309753
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034943102,
+            "value": 0.43070662021636963
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034943707,
+            "value": 0.4021965265274048
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034944004,
+            "value": 0.4032849967479706
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034944348,
+            "value": 0.3974030017852783
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034944726,
+            "value": 0.3647405207157135
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034945078,
+            "value": 0.3602342903614044
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034945483,
+            "value": 0.3369982838630676
+          }
+        ],
+        "validation.accuracy": [
+          {
+            "step": 0,
+            "timestamp": 1792034947018,
+            "value": 0.9057471264367816
+          }
+        ],
+        "validation.log_loss": [
+          {
+            "step": 0,
+            "timestamp": 1792034947018,
+            "value": 0.34953810576321487
+          }
+        ],
+        "validation.macro_f1": [
+          {
+            "step": 0,
+            "timestamp": 1792034947018,
+            "value": 0.9056403243527629
+          }
+        ]
+      },
+      "omitted_fields": [],
+      "params": {
+        "batch_size": "64",
+        "class_balance": "null",
+        "d_model": "16",
+        "dataset_sha256": "150a89b38646ce3e2d46baf55671ba75faf1e05488ac46faa67fcf536a0a47e8",
+        "dropout": "0.1",
+        "epochs": "8",
+        "head": "multiclass",
+        "learning_rate": "0.003",
+        "n_features": "5",
+        "n_heads": "2",
+        "n_layers": "1",
+        "seed": "20261015",
+        "seq_len": "12"
+      },
+      "source_end_time": 1792034947135,
+      "source_run_id": "ea6e7731d0b143539c746cc92a78ae4c",
+      "source_start_time": 1792034937868,
+      "source_status": "FINISHED",
+      "tags": {
+        "lifecycle": "EXPERIMENTAL",
+        "mlflow.parentRunId": "1aaf47dfd7454e5fa96fcad14f7b68d4",
+        "mlflow.runName": "transformer-depth-1",
+        "model_id": "242efa3577d8",
+        "vtech.workflow": "transformer_smoke"
+      }
+    },
+    {
+      "metrics": {
+        "reload_max_abs_error": [
+          {
+            "step": 0,
+            "timestamp": 1792034960853,
+            "value": 0.0
+          }
+        ],
+        "temperature": [
+          {
+            "step": 0,
+            "timestamp": 1792034960853,
+            "value": 1.419655862109516
+          }
+        ],
+        "train.accuracy": [
+          {
+            "step": 0,
+            "timestamp": 1792034955906,
+            "value": 0.6880733966827393
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034956354,
+            "value": 0.8709480166435242
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034956891,
+            "value": 0.8825688362121582
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034957299,
+            "value": 0.9076452851295471
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034957752,
+            "value": 0.9168195724487305
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034958145,
+            "value": 0.9223241806030273
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034958537,
+            "value": 0.9259938597679138
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034958944,
+            "value": 0.9272171258926392
+          }
+        ],
+        "train.loss": [
+          {
+            "step": 0,
+            "timestamp": 1792034955906,
+            "value": 0.7135573625564575
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034956354,
+            "value": 0.3789258599281311
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034956891,
+            "value": 0.32774707674980164
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034957299,
+            "value": 0.2845729887485504
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034957752,
+            "value": 0.2640298306941986
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034958145,
+            "value": 0.2517513334751129
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034958537,
+            "value": 0.24832648038864136
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034958944,
+            "value": 0.23887357115745544
+          }
+        ],
+        "train.val_accuracy": [
+          {
+            "step": 0,
+            "timestamp": 1792034955906,
+            "value": 0.821052610874176
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034956354,
+            "value": 0.8561403751373291
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034956891,
+            "value": 0.859649121761322
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034957299,
+            "value": 0.9122806787490845
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034957752,
+            "value": 0.9122806787490845
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034958145,
+            "value": 0.9122806787490845
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034958537,
+            "value": 0.9192982316017151
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034958944,
+            "value": 0.9263157844543457
+          }
+        ],
+        "train.val_loss": [
+          {
+            "step": 0,
+            "timestamp": 1792034955906,
+            "value": 0.5109848976135254
+          },
+          {
+            "step": 1,
+            "timestamp": 1792034956354,
+            "value": 0.43838173151016235
+          },
+          {
+            "step": 2,
+            "timestamp": 1792034956891,
+            "value": 0.46793705224990845
+          },
+          {
+            "step": 3,
+            "timestamp": 1792034957299,
+            "value": 0.35623985528945923
+          },
+          {
+            "step": 4,
+            "timestamp": 1792034957752,
+            "value": 0.3189687132835388
+          },
+          {
+            "step": 5,
+            "timestamp": 1792034958145,
+            "value": 0.33634915947914124
+          },
+          {
+            "step": 6,
+            "timestamp": 1792034958537,
+            "value": 0.30526241660118103
+          },
+          {
+            "step": 7,
+            "timestamp": 1792034958944,
+            "value": 0.2929385304450989
+          }
+        ],
+        "validation.accuracy": [
+          {
+            "step": 0,
+            "timestamp": 1792034960841,
+            "value": 0.9195402298850575
+          }
+        ],
+        "validation.log_loss": [
+          {
+            "step": 0,
+            "timestamp": 1792034960841,
+            "value": 0.3045525589306644
+          }
+        ],
+        "validation.macro_f1": [
+          {
+            "step": 0,
+            "timestamp": 1792034960841,
+            "value": 0.9197705243561797
+          }
+        ]
+      },
+      "omitted_fields": [],
+      "params": {
+        "batch_size": "64",
+        "class_balance": "null",
+        "d_model": "16",
+        "dataset_sha256": "150a89b38646ce3e2d46baf55671ba75faf1e05488ac46faa67fcf536a0a47e8",
+        "dropout": "0.1",
+        "epochs": "8",
+        "head": "multiclass",
+        "learning_rate": "0.003",
+        "n_features": "5",
+        "n_heads": "2",
+        "n_layers": "2",
+        "seed": "20261015",
+        "seq_len": "12"
+      },
+      "source_end_time": 1792034960948,
+      "source_run_id": "82aef6acdbde4d0d88c9b6d84c260173",
+      "source_start_time": 1792034947629,
+      "source_status": "FINISHED",
+      "tags": {
+        "lifecycle": "EXPERIMENTAL",
+        "mlflow.parentRunId": "1aaf47dfd7454e5fa96fcad14f7b68d4",
+        "mlflow.runName": "transformer-depth-2",
+        "model_id": "d7facd489218",
+        "vtech.workflow": "transformer_smoke"
+      }
+    }
+  ],
+  "schema_version": 1,
+  "source_store_sha256": "28d6f661fa2c074a12015dcfad614f48359b74f60d723a0732d1dfbf00920e1a"
+}

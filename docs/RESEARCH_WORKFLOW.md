@@ -76,3 +76,16 @@ This is rolling past-state evaluation, not shuffled OOF or future-fitted scaling
 Independent quote marking, real-data prefix checks, fixed long/cash benchmarks,
 and the PDF/CSV exporter complete the evidence path. See
 [measured status](research/NQ_RETRY_RESULTS.md). No automatic deployment follows.
+
+
+## Public synthetic Transformer application — 2026-10-15
+
+The independent `synthetic-regime-service` objective applies the research
+lifecycle to a small classification service. `src.experiment.transformer_workflow`
+performs purged training, early stopping, separate calibration, comparison,
+validation-before-holdout gates, negative controls, verified HTTP inference and
+scoped model promotion. Its diagnostic synthetic trading ledger is not the
+promotion objective. It does not waive economic/paper gates for trading tracks.
+The recorded result and an optional fresh run are accessible through the
+[file-backed showcase walkthrough](examples/TRANSFORMER_WORKFLOW.md), with
+MLflow parent/child lineage and explicit original-versus-imported provenance.

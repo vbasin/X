@@ -89,6 +89,7 @@ Repository = "https://github.com/vbasin/X"
 [project.scripts]
 vtech-features = "src.features.engine:main"
 vtech-demo = "src.demo:main"
+vtech-showcase = "src.showcase:main"
 
 # ---------------------------------------------------------------------------
 # Setuptools – src layout

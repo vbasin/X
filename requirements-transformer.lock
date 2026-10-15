@@ -1,0 +1,27 @@
+# Tested Linux aarch64 / Python 3.12 CPU training profile.
+# Linux x86_64 uses the corresponding CPU-only TensorFlow distribution.
+-r requirements-showcase.lock
+tensorflow-cpu==2.21.0; platform_machine == "x86_64" and platform_system == "Linux"
+tensorflow==2.21.0; platform_machine != "x86_64" or platform_system != "Linux"
+absl-py==2.5.1
+astunparse==1.6.3
+flatbuffers==25.12.19
+gast==0.7.0
+google-pasta==0.2.0
+grpcio==1.84.0
+h5py==3.14.0
+keras==3.13.2
+libclang==18.1.1
+markdown-it-py==4.2.0
+mdurl==0.1.2
+ml-dtypes==0.6.0
+namex==0.1.0
+opt-einsum==3.4.0
+optree==0.20.0
+pygments==2.21.0
+rich==15.0.0
+setuptools==84.0.0
+termcolor==3.3.0
+wheel==0.48.0
+wrapt==2.5.1
+zstandard==0.25.0

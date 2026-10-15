@@ -1,0 +1,55 @@
+{
+  "baselines": {
+    "class_prior": {
+      "accuracy": 0.3333333333333333,
+      "log_loss": 1.0990811502288085,
+      "macro_f1": 0.16666666666666666
+    },
+    "sensor_persistence": {
+      "accuracy": 0.9172413793103448,
+      "log_loss": 0.3222508123153273,
+      "macro_f1": 0.9174874158720776
+    }
+  },
+  "checks": {
+    "accuracy": true,
+    "class_recall": true,
+    "macro_f1": true,
+    "maximum_log_loss": true,
+    "minimum_class_rows": true,
+    "minimum_rows": true,
+    "persistence_accuracy_noninferiority": true,
+    "prior_log_loss_improvement": true
+  },
+  "class_counts": [
+    150,
+    140,
+    145
+  ],
+  "metrics": {
+    "accuracy": 0.9057471264367816,
+    "class_recall": [
+      0.9133333333333333,
+      0.8857142857142857,
+      0.9172413793103448
+    ],
+    "log_loss": 0.34953810576321487,
+    "macro_f1": 0.9056403243527629,
+    "persistence_accuracy_difference": -0.011494252873563204,
+    "prior_log_loss_improvement": 0.6819724315256908
+  },
+  "n_rows": 435,
+  "passed": true,
+  "policy": {
+    "max_log_loss": 0.6,
+    "max_runtime_seconds": 900,
+    "min_accuracy": 0.8,
+    "min_class_recall": 0.75,
+    "min_class_rows": 50,
+    "min_macro_f1": 0.8,
+    "min_prior_log_loss_improvement": 0.25,
+    "min_rows": 200,
+    "persistence_accuracy_margin": 0.05
+  },
+  "scope": "synthetic_classification_service_only"
+}

@@ -1,0 +1,49 @@
+{
+  "feature_columns": [
+    "wf_return_1",
+    "wf_momentum_4",
+    "wf_momentum_12",
+    "wf_volatility_12",
+    "wf_context"
+  ],
+  "hyperparameters": {
+    "batch_size": 64,
+    "class_balance": null,
+    "d_model": 16,
+    "dropout": 0.1,
+    "epochs": 8,
+    "head": "multiclass",
+    "learning_rate": 0.003,
+    "n_features": 5,
+    "n_heads": 2,
+    "n_layers": 1,
+    "seq_len": 12
+  },
+  "inputs": {
+    "join_keys": [
+      "ts"
+    ],
+    "population_cache": "research/runs/synthetic-regime-service/20261015T032845Z_c77c70f8/synthetic.parquet"
+  },
+  "model_id": "242efa3577d8",
+  "model_type": "transformer",
+  "oof_columns": [
+    "ts",
+    "direction",
+    "confidence",
+    "direction_true",
+    "p_down",
+    "p_flat",
+    "p_up"
+  ],
+  "oof_core_columns": [
+    "ts",
+    "direction",
+    "confidence",
+    "direction_true",
+    "p_down",
+    "p_flat",
+    "p_up"
+  ],
+  "target": "label"
+}

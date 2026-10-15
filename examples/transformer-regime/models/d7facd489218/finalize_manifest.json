@@ -1,0 +1,22 @@
+{
+  "candidate_id": "d7facd489218",
+  "family": "transformer",
+  "kind": "sequence",
+  "lifecycle": "EXPERIMENTAL",
+  "objective_id": "synthetic-regime-service",
+  "seq_len": 12,
+  "spec_params": {
+    "batch_size": 64,
+    "class_balance": null,
+    "d_model": 16,
+    "dropout": 0.1,
+    "epochs": 8,
+    "head": "multiclass",
+    "learning_rate": 0.003,
+    "n_features": 5,
+    "n_heads": 2,
+    "n_layers": 2,
+    "seq_len": 12
+  },
+  "synthetic_only": true
+}

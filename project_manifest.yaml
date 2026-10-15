@@ -476,3 +476,17 @@ independent_experiments:
     evidence: docs/research/NQ_SELECTIVE_RESULTS.md
     holdout: "2026-07-01 through 2026-09-22; unconsulted by this experiment"
     serving: NOT_WIRED
+
+# Public synthetic example; does not change trading-track lifecycle status.
+public_transformer_showcase:
+  status: ACTIVE_SYNTHETIC_EXAMPLE
+  viewer: src/showcase.py
+  provider: src/showcase_data.py
+  webui_profile: src/webui/showcase.py
+  fixture: examples/transformer-regime/
+  rerun: src/experiment/transformer_workflow.py
+  objective: config/workflows/synthetic_regime_objective.json
+  tracking: portable_recorded_mlflow_import_and_fresh_training_runs
+  promotion_scope: synthetic_regime_service_only
+  docs: docs/examples/TRANSFORMER_WORKFLOW.md
+  validation: docs/examples/SHOWCASE_VALIDATION.md
