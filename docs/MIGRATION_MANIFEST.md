@@ -812,3 +812,15 @@ The same preserved-original exception also covers `.gitignore`,
 `project_manifest.yaml` and `docs/RESEARCH_WORKFLOW.md`. Root snapshots remain
 local and ignored; the only public binary additions are the allowlisted
 synthetic fixture and the actual console screenshot under `docs/assets/`.
+
+
+## 2026-10-15 — preserve both README entry paths
+
+At the user's request, README now begins with an explicit choice between the
+existing platform/model-stack guide and the added Robin Transformer showcase.
+Original offline-demo, source-map and optional-integration sections retain their
+published bodies and order; the complete Robin instructions follow them. This
+is a documentation-only refinement with no runtime changes. Before edits,
+README, this manifest and CHANGELOG were preserved under the ignored local
+`archive/code_snapshots/20261015_readme_entry_points/` directory. No path removed
+or remote push performed.
